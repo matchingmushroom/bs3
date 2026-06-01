@@ -261,7 +261,7 @@ async function renderSearchResultsGrid(list) {
       m = c.metrics;
     }
     let cat = 'Pass';
-    let netOvdVal = 'Rs. 0.00';
+    let netOvdVal = '₹ 0.00';
     let maxOvdDaysVal = 0;
     
     if (m) {

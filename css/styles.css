@@ -1007,8 +1007,6 @@ html[data-theme="dark"] .icon-only-btn {
   font-family: 'Plus Jakarta Sans', var(--font-sans);
   animation: counterIn 0.5s var(--ease-out) both;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .stat-card-val.neg-val {

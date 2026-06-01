@@ -40,12 +40,6 @@
 <!-- Ambient glassmorphism glow orbs -->
 <div class="ambient-orbs"></div>
 
-<!-- Loader/spinner -->
-<div id="loader" class="hidden" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.25); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; z-index:2100;">
-  <div class="skeleton" style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, var(--primary) 0%, var(--accent-gold) 100%); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-lg); animation: pulseGlow 1.5s infinite ease-in-out;">
-    <i class="material-icons-round" style="color:white; font-size:32px; animation: spin 2.5s infinite linear;">autorenew</i>
-  </div>
-</div>
 
 <style>
 @keyframes spin {
@@ -167,13 +161,13 @@
         
         <!-- Metrics Grid (NPA red, WL yellow) -->
         <div class="stat-grid" id="detail-metrics-grid">
-          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">account_balance_wallet</i><span class="stat-card-lbl">Net Overdue</span></div><div class="stat-card-val neg-val" id="v-net-ovd">Rs. 0.00</div></div>
-          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">request_quote</i><span class="stat-card-lbl">Total Overdue</span></div><div class="stat-card-val" id="v-tot-ovd">Rs. 0.00</div></div>
-          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">security</i><span class="stat-card-lbl">NPA Saver</span></div><div class="stat-card-val" id="v-npa">Rs. 0.00</div></div>
-          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">health_and_safety</i><span class="stat-card-lbl">WL Saver</span></div><div class="stat-card-val" id="v-wl">Rs. 0.00</div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">account_balance_wallet</i><span class="stat-card-lbl">Net Overdue</span></div><div class="stat-card-val neg-val" id="v-net-ovd">₹ 0.00</div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">request_quote</i><span class="stat-card-lbl">Total Overdue</span></div><div class="stat-card-val" id="v-tot-ovd">₹ 0.00</div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">security</i><span class="stat-card-lbl">NPA Saver</span></div><div class="stat-card-val" id="v-npa">₹ 0.00</div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">health_and_safety</i><span class="stat-card-lbl">WL Saver</span></div><div class="stat-card-val" id="v-wl">₹ 0.00</div></div>
           <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">event_busy</i><span class="stat-card-lbl">OVD Days</span></div><div class="stat-card-val" id="v-days">0</div></div>
-          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">account_balance</i><span class="stat-card-lbl">Total Loan</span></div><div class="stat-card-val" id="v-loan">Rs. 0.00</div></div>
-          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">savings</i><span class="stat-card-lbl">Op. Balance</span></div><div class="stat-card-val" id="v-op">Rs. 0.00</div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">account_balance</i><span class="stat-card-lbl">Total Loan</span></div><div class="stat-card-val" id="v-loan">₹ 0.00</div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">savings</i><span class="stat-card-lbl">Op. Balance</span></div><div class="stat-card-val" id="v-op">₹ 0.00</div></div>
           <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">autorenew</i><span class="stat-card-lbl">Renewal</span></div><div class="stat-card-val" id="v-renewal">N/A</div></div>
         </div>
         
@@ -284,7 +278,7 @@
 
 <!-- Modal Backdrops -->
 <!-- Share Account Modal (NO CURRENCY SIGN) -->
-<div id="shareModal" class="modal-backdrop" onclick="closeModalOnBackdrop(event, 'shareModal')">
+<div id="shareModal" class="modal-backdrop hidden" onclick="closeModalOnBackdrop(event, 'shareModal')">
   <div class="modal-box">
     <div class="modal-hdr">
       <h3 class="modal-title">📤 Share Account Details</h3>
@@ -306,7 +300,7 @@
 </div>
 
 <!-- Reminder Modal -->
-<div id="reminderModal" class="modal-backdrop" onclick="closeModalOnBackdrop(event, 'reminderModal')">
+<div id="reminderModal" class="modal-backdrop hidden" onclick="closeModalOnBackdrop(event, 'reminderModal')">
   <div class="modal-box">
     <div class="modal-hdr">
       <h3 class="modal-title">📨 Send Reminder Notification</h3>
@@ -343,7 +337,7 @@
 </div>
 
 <!-- GPS Coordinator Modal -->
-<div id="gpsModal" class="modal-backdrop" onclick="closeModalOnBackdrop(event, 'gpsModal')">
+<div id="gpsModal" class="modal-backdrop hidden" onclick="closeModalOnBackdrop(event, 'gpsModal')">
   <div class="modal-box">
     <div class="modal-hdr">
       <h3 class="modal-title">🌐 Field GPS Coordination</h3>
@@ -428,7 +422,7 @@
 </div>
 
 <!-- Upcoming commitment scheduler Modal -->
-<div id="commitmentModal" class="modal-backdrop" onclick="closeModalOnBackdrop(event, 'commitmentModal')">
+<div id="commitmentModal" class="modal-backdrop hidden" onclick="closeModalOnBackdrop(event, 'commitmentModal')">
   <div class="modal-box">
     <div class="modal-hdr">
       <h3 class="modal-title">📅 Schedule Upcoming Payment</h3>

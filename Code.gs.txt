@@ -821,28 +821,57 @@ function getRowValueInsensitive(row, keyToFind) {
 function loadFullData() {
   const startTime = new Date().getTime();
   
+  function findColumnIndex(headers, exactMatches, containsMatches, excludes) {
+    for (var ei = 0; ei < exactMatches.length; ei++) {
+      var idx = headers.findIndex(function(h) {
+        var norm = String(h).toLowerCase().replace(/[\s_-]/g, '');
+        if (excludes) {
+          for (var xi = 0; xi < excludes.length; xi++) {
+            if (norm === excludes[xi]) return false;
+          }
+        }
+        return norm === exactMatches[ei];
+      });
+      if (idx !== -1) return idx;
+    }
+    for (var ci = 0; ci < containsMatches.length; ci++) {
+      var idx = headers.findIndex(function(h) {
+        var norm = String(h).toLowerCase().replace(/[\s_-]/g, '');
+        if (excludes) {
+          for (var xi = 0; xi < excludes.length; xi++) {
+            if (norm === excludes[xi]) return false;
+          }
+        }
+        return norm.indexOf(containsMatches[ci]) !== -1;
+      });
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  }
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const customerInfoSheet = ss.getSheetByName('CustomerInfo');
   const cifToRm = new Map();
+  const cifToRel = new Map();
   if (customerInfoSheet) {
     const ciData = customerInfoSheet.getDataRange().getDisplayValues();
     if (ciData.length > 1) {
       const ciHeaders = ciData[0].map(function(h) { return String(h).trim(); });
-      const cifIdx = ciHeaders.findIndex(function(h) {
-        const norm = String(h).toLowerCase().replace(/[\s_-]/g, '');
-        return norm === 'cifid' || norm === 'cif' || norm === 'cid' || norm === 'customerid' || norm.indexOf('cif') !== -1 || norm.indexOf('customer') !== -1 || norm.indexOf('accountno') !== -1 || norm.indexOf('account') !== -1;
-      });
-      const rmIdx = ciHeaders.findIndex(function(h) {
-        const norm = String(h).toLowerCase().replace(/[\s_-]/g, '');
-        return norm === 'rm' || norm === 'assignedrm' || norm === 'assignedto' || norm === 'employee' || norm === 'staffname' || norm === 'representative' || norm === 'officername' || norm.indexOf('rm') !== -1 || norm.indexOf('relationshipmanager') !== -1 || norm.indexOf('staff') !== -1 || norm.indexOf('manager') !== -1 || norm.indexOf('officer') !== -1 || norm.indexOf('assigned') !== -1 || norm.indexOf('employee') !== -1 || norm.indexOf('person') !== -1 || norm.indexOf('representative') !== -1;
-      });
-      if (cifIdx !== -1 && rmIdx !== -1) {
+      var cifIdx = findColumnIndex(ciHeaders, ['cifid', 'cif', 'cid', 'customerid', 'customercode'], ['cif', 'customerid'], ['customername']);
+      var rmIdx = findColumnIndex(ciHeaders, ['rm', 'assignedrm', 'assignedto', 'representative', 'staffname', 'officername', 'employeename', 'relationshipmanager'], ['rm', 'relationshipmanager', 'staff', 'officer', 'assigned'], []);
+      var relIdx = findColumnIndex(ciHeaders, ['relationship', 'custrelationship', 'customertype', 'type', 'branch'], ['relationship', 'custrelationship', 'branchlrd'], ['customername']);
+      if (cifIdx !== -1) {
         for (let i = 1; i < ciData.length; i++) {
           const row = ciData[i];
-          const cif = String(row[cifIdx]).trim().replace(/^0+/, ''); // strip leading zeros
-          const rm = String(row[rmIdx]).trim();
-          if (cif && rm) {
-            cifToRm.set(cif, rm);
+          const cif = String(row[cifIdx]).trim().replace(/^0+/, '');
+          if (!cif) continue;
+          if (rmIdx !== -1) {
+            const rm = String(row[rmIdx]).trim();
+            if (rm) cifToRm.set(cif, rm);
+          }
+          if (relIdx !== -1) {
+            const rel = String(row[relIdx]).trim();
+            if (rel) cifToRel.set(cif, rel);
           }
         }
       }
@@ -863,12 +892,14 @@ function loadFullData() {
     const isExpired = renewal === 'EXPIRED';
     
     if (!customerMap.has(cif)) {
+      var relFromCi = cifToRel.get(String(cif).trim().replace(/^0+/, ''));
+      var relFromData = getRowValueInsensitive(row, 'relationship') || getRowValueInsensitive(row, 'custrelationship') || '';
       customerMap.set(cif, {
         cifId: cif,
         name: row.CUSTOMER_NAME || 'N/A',
         group: row.CUSTOMER_GROUP || "NO GROUP",
         renewal: renewal,
-        relationship: getRowValueInsensitive(row, 'relationship') || getRowValueInsensitive(row, 'custrelationship') || 'Branch',
+        relationship: relFromCi || relFromData || 'Branch',
         assignedRM: cifToRm.get(String(cif).trim().replace(/^0+/, '')) || 'Unassigned',
         maxOvdDays: 0,
         maxRevOvdDays: 0,

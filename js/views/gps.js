@@ -9,9 +9,14 @@ function openGPS() {
   gpsCurrentCIF = cif;
   
   const modal = document.getElementById('gpsModal');
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.right = '0';
+  modal.style.bottom = '0';
   modal.classList.remove('hidden');
   setTimeout(() => modal.classList.add('active'), 50);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
   try { google.script.host.scrollTo(0, 0); } catch(e) {}
   
   loadGpsRecords();

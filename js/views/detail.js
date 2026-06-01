@@ -81,7 +81,6 @@ async function renderMetrics(m) {
     
     try {
       const c = await getCachedExtraDetails(currentCIF);
-      populateAdminContactDetails(c);
       
       if (!c) { 
         grid.innerHTML = "<div class='contact-card-premium' style='grid-column:1/-1;text-align:center;color:var(--text-muted);padding:24px;font-size:13px;'>No contact details recorded</div>"; 

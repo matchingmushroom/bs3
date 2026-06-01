@@ -31,24 +31,27 @@ window.alert = function(message) {
 
 const NEPALI_MONTHS = ["Baisakh","Jestha","Ashadh","Shrawan","Bhadra","Ashwin","Kartik","Mangsir","Poush","Magh","Falgun","Chaitra"];
 
-const fAmt = (n) => 'Rs. ' + (Math.abs(n) <= 0.0001 ? "0.00" : parseFloat(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}));
+const fAmt = (n) => '₹ ' + (Math.abs(n) <= 0.0001 ? "0.00" : parseFloat(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}));
 
 function adjustFontSizeToFit(element) {
   if (!element) return;
   element.style.whiteSpace = 'nowrap';
-  const text = element.innerText || element.textContent;
-  const len = text.length;
-  const isKpi = element.classList.contains('kpi-val');
-  const baseSize = isKpi ? 20 : 22;
-  let size = baseSize;
-  if (len > 18) {
-    size = baseSize * 0.65;
-  } else if (len > 15) {
-    size = baseSize * 0.75;
-  } else if (len > 12) {
-    size = baseSize * 0.85;
-  }
+  element.style.overflow = 'visible';
+  element.style.fontSize = '';
+  const computed = window.getComputedStyle(element);
+  let size = parseFloat(computed.fontSize) || 18;
+  const minSize = 10;
   element.style.fontSize = size + 'px';
+  void element.offsetWidth;
+  if (element.scrollWidth > element.clientWidth) {
+    while (size > minSize) {
+      size -= 0.5;
+      element.style.fontSize = size + 'px';
+      void element.offsetWidth;
+      if (element.scrollWidth <= element.clientWidth) break;
+    }
+  }
+  element.style.overflow = 'hidden';
 }
 
 let loaderTimeout = null;
@@ -145,7 +148,7 @@ function updateThemeIcon() {
 }
 
 function openDashboard() {
-  window.location.href = '?page=dashboard';
+  window.location.href = 'Dashboard.html';
 }
 
 function openAdminPage() {
