@@ -1,11 +1,3 @@
-const CRM_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBlAHo3FqL9xN-zNVmbkaLyT6VtqZIG0o4",
-  projectId: "behind-schedule",
-  authDomain: "behind-schedule.firebaseapp.com",
-  storageBucket: "behind-schedule.firebasestorage.app",
-  appId: "1:1039757861986:web:3d1b7468b45a75c9965d3b"
-};
-
 async function performFirebaseAuthentication() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPassword').value.trim();
@@ -21,12 +13,15 @@ async function performFirebaseAuthentication() {
   try {
     fbConfig = await callBackend('getFirebaseConfig');
   } catch(e) {
-    console.warn("Failed to fetch Firebase config online. Using hardcoded config.", e);
-    fbConfig = CRM_FIREBASE_CONFIG;
+    toggleLoader(false);
+    showToast('Could not fetch Firebase config. Check network or deploy new script version.', 'error');
+    return;
   }
   
   if (!fbConfig || !fbConfig.apiKey || !fbConfig.projectId) {
-    fbConfig = CRM_FIREBASE_CONFIG;
+    toggleLoader(false);
+    showToast('Invalid Firebase config from server.', 'error');
+    return;
   }
   
   localStorage.setItem('crm_fb_config', JSON.stringify(fbConfig));
