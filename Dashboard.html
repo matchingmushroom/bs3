@@ -2189,7 +2189,7 @@
         phones.forEach(p => {
           const cleanPhone = p.replace(/[^0-9]/g, '');
           const fullWhatsAppPhone = cleanPhone.startsWith('977') ? cleanPhone : '977' + cleanPhone;
-          const defaultWhatsAppMsg = encodeURIComponent("Dear Customer, this is a gentle reminder that your loan account overdue balance clearance is pending. Kindly coordinate clearance. Thank you.");
+          const defaultWhatsAppMsg = encodeURIComponent("Dear Customer, this is a gentle reminder that your payment is overdue. Kindly arrange clearance at your earliest convenience. Thank you.");
           
           subHtml += `
             <div style="display: flex; align-items: center; justify-content: space-between; background: var(--theme-surface-solid); padding: 8px 12px; border-radius: var(--radius-xs); margin-bottom: 6px; border: 1px solid var(--theme-border);">

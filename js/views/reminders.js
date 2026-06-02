@@ -129,10 +129,19 @@ function updatePreview() {
   const account = window.currentCustomer.account || '';
   
   let text;
-  if (lang === 'NP') {
-    text = `प्रिय ${name},\nयो तपाईंको ऋण खाता (${account}) को बक्यौता सम्बन्धी स्मरणपत्र हो। कृपया समन्वय गर्नुहोला।\nनवीकरण स्थिति: ${renewal}\nधन्यवाद।`;
+  const isExpired = renewal.toUpperCase() === 'EXPIRED';
+  if (isExpired) {
+    if (lang === 'NP') {
+      text = `आदरणीय ग्राहकज्यू, तपाईंको कर्जा खातामा बक्यौता रकम बाँकी रहेको र कर्जा खाता नवीकरण गर्नु आवश्यक रहेको जानकारी गराउन चाहन्छौँ। कृपया बक्यौता भुक्तानी तथा नवीकरणका लागि आवश्यक कागजातसहित शीघ्र सम्पर्क गर्नुहुन अनुरोध छ। धन्यवाद।`;
+    } else {
+      text = `Dear Valued Customer, please be informed that your loan account has an overdue balance and also requires renewal. Kindly clear the overdue amount and contact us with the necessary documents for renewal at your earliest convenience. Thank you.`;
+    }
   } else {
-    text = `Dear ${name},\nThis is a gentle reminder that your loan account (${account}) overdue balance clearance is pending. Kindly coordinate clearance.\nRenewal Status: ${renewal}\nThank you.`;
+    if (lang === 'NP') {
+      text = `आदरणीय ग्राहकज्यू, तपाईंको भुक्तानी समयमै नभएकोले बाँकी रहेको जानकारी गराउन चाहन्छौँ। कृपया छिटो भुक्तानी गरिदिनुहुन अनुरोध छ। धन्यवाद।`;
+    } else {
+      text = `Dear Customer, this is a gentle reminder that your payment is overdue. Kindly arrange clearance at your earliest convenience. Thank you.`;
+    }
   }
   
   document.getElementById('remPreview').value = text;
