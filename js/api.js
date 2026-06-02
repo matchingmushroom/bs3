@@ -5,7 +5,7 @@ const API_BASE = (() => {
   if (url.origin.includes('google.com') || url.origin.includes('googleusercontent.com')) {
     return url.origin + url.pathname;
   }
-  return 'https://script.google.com/macros/s/AKfycbwbSvJ8jRda8PHkMV8KwTwL0p8iqUI9FxQp6cSZCQiLjNOkmQC1FuUo4CJqwyK356GALQ/exec';
+  return 'https://script.google.com/macros/s/AKfycbyjK5HU7A-Nr6_8sdaeiYvepRaL712EUvYGFUrnr0hZ-Q7M1akmFf8Tqzsxta0tC3nntw/exec';
 })();
 
 const _pendingRequests = {};
