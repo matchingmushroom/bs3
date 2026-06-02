@@ -45,19 +45,19 @@ async function loadCustomerListLegacy() {
   }
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
   try {
     const data = await callBackend('customers', {}, controller.signal);
     clearTimeout(timeoutId);
     if (Array.isArray(data) && data.length > 0) {
       customers = data;
       await crmDb.clearStore('customers');
-      for(const c of data) {
-        await crmDb.put('customers', c);
-        if (c.metrics) {
-          await crmDb.put('metrics', c.metrics);
-        }
-      }
+      const writes = data.flatMap(c => {
+        const ops = [crmDb.put('customers', c)];
+        if (c.metrics) ops.push(crmDb.put('metrics', c.metrics));
+        return ops;
+      });
+      await Promise.all(writes);
       showToast(`Loaded ${customers.length} customer ledgers.`, 'success');
     }
   } catch(e) {
@@ -254,12 +254,12 @@ async function renderSearchResultsGrid(list) {
     return;
   }
   
-  for (const c of list) {
+  const metricsList = await Promise.all(list.map(c => crmDb.get('metrics', c.id).then(m => m || c.metrics || null)));
+  
+  for (let i = 0; i < list.length; i++) {
+    const c = list[i];
     const card = document.createElement('div');
-    let m = await crmDb.get('metrics', c.id);
-    if (!m && c.metrics) {
-      m = c.metrics;
-    }
+    const m = metricsList[i];
     let cat = 'Pass';
     let netOvdVal = '₹ 0.00';
     let maxOvdDaysVal = 0;

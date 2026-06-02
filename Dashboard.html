@@ -433,64 +433,152 @@
     }
 
     /* Analytics Chart Panel */
+    .summary-carousel-wrap { margin-top: 32px; margin-bottom: 28px; }
+
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
       gap: 20px;
-      margin-bottom: 28px;
     }
     .summary-card {
-      background: var(--theme-surface);
-      border: 1px solid var(--theme-border);
-      border-radius: var(--radius-sm);
-      padding: 14px 16px;
-      box-shadow: var(--theme-shadow-sm);
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,20,60,0.08);
     }
-    .summary-card h3 {
+    .s-card-header {
+      background: linear-gradient(135deg, #2a5c8a 0%, #1d4b78 100%);
+      padding: 12px 16px;
+    }
+    .s-card-header h3 {
       font-size: 12px;
       font-weight: 800;
-      color: var(--theme-text-secondary);
-      margin: 0 0 10px;
+      color: #fff;
+      margin: 0;
       text-transform: uppercase;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.5px;
     }
-    .summary-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    .summary-table th {
-      text-align: left;
-      padding: 5px 8px;
-      font-weight: 700;
-      color: var(--theme-text-secondary);
-      border-bottom: 1px solid var(--theme-border);
+    .s-card-header .s-sub {
       font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 2px;
     }
-    .summary-table td {
-      padding: 4px 8px;
-      border-bottom: 1px solid var(--theme-border);
-      color: var(--theme-text-primary);
-      white-space: nowrap;
+    .s-card-body {
+      padding: 0;
     }
-    .summary-table tbody tr:hover {
-      background: var(--theme-hover);
+    .summary-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    .summary-table td:last-child,
-    .summary-table th:last-child {
-      text-align: right;
-      font-family: monospace;
+    .summary-row {
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-bottom: 1px solid #eef3f8;
+      transition: background 0.15s;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row:hover { background: #f0f6ff; }
+    .summary-row .s-label {
+      flex: 1 1 46%;
       font-weight: 600;
+      font-size: 12px;
+      color: #2c3e50;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-right: 8px;
     }
-    .summary-table td:nth-child(2) {
+    .summary-row .s-count {
+      flex: 0 0 22%;
       text-align: right;
       font-weight: 700;
+      font-size: 12px;
+      color: #2c3e50;
+      padding-right: 8px;
     }
-    .summary-table-wrap {
-      max-height: 260px;
-      overflow-y: auto;
+    .summary-row .s-vol {
+      flex: 0 0 32%;
+      text-align: right;
+      font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+      font-weight: 600;
+      font-size: 12px;
+      color: #1a3a5c;
+    }
+    .summary-header-row {
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      background: #f5f8fc;
+      border-bottom: 1px solid #e6edf4;
+      font-size: 9px;
+      font-weight: 700;
+      color: #5a6b8a;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .summary-header-row .s-label {
+      flex: 1 1 46%;
+      padding-right: 8px;
+    }
+    .summary-header-row .s-count {
+      flex: 0 0 22%;
+      text-align: right;
+      padding-right: 8px;
+    }
+    .summary-header-row .s-vol {
+      flex: 0 0 32%;
+      text-align: right;
+    }
+
+    .carousel-dots { display: none; }
+
+    @media (max-width: 768px) {
+      .summary-carousel-wrap { position: relative; }
+      .summary-grid {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 12px;
+        scrollbar-width: none;
+        padding: 2px 0;
+        min-width: 100%;
+      }
+      .summary-grid::-webkit-scrollbar { display: none; }
+      .summary-grid > .summary-card {
+        flex: 1 0 80%;
+        max-width: 90vw;
+        scroll-snap-align: start;
+        min-width: 0;
+      }
+      .s-card-header { padding: 10px 14px; }
+      .s-card-header h3 { font-size: 11px; }
+      .summary-row { padding: 4px 8px; }
+      .summary-row .s-label,
+      .summary-row .s-count,
+      .summary-row .s-vol { font-size: 10px; }
+      .summary-header-row { padding: 4px 8px; font-size: 8px; }
+      .carousel-dots {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .carousel-dots .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #d0d8e6;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+      }
+      .carousel-dots .dot.active {
+        background: #2a5c8a;
+        transform: scale(1.4);
+      }
     }
     .chart-container {
       position: relative;
@@ -980,7 +1068,7 @@
 <div class="dashboard-header">
   <div class="dashboard-header-left">
     <i class="material-icons-round" style="font-size:32px; color:var(--accent-gold);">dashboard</i>
-    <h1>Customer Summary Analytics</h1>
+    <h1>Dashboard</h1>
   </div>
   <div class="header-controls">
     <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
@@ -1051,7 +1139,7 @@
       <div class="kpi-icon"><i class="material-icons-round">request_quote</i></div>
       <div class="kpi-content">
         <span class="kpi-lbl">Total Overdue</span>
-        <span class="kpi-val" id="kpi-total-ovd">₹ 0.00</span>
+        <span class="kpi-val" id="kpi-total-ovd">₹ 0.00 M</span>
         <span class="kpi-sub">Net Overdue</span>
       </div>
     </div>
@@ -1059,7 +1147,7 @@
       <div class="kpi-icon"><i class="material-icons-round">security</i></div>
       <div class="kpi-content">
         <span class="kpi-lbl">Total NPA</span>
-        <span class="kpi-val" id="kpi-npa-val">₹ 0.00</span>
+        <span class="kpi-val" id="kpi-npa-val">₹ 0.00 M</span>
         <span class="kpi-sub" id="kpi-npa-count">0 CIFs</span>
       </div>
     </div>
@@ -1067,7 +1155,7 @@
       <div class="kpi-icon"><i class="material-icons-round">health_and_safety</i></div>
       <div class="kpi-content">
         <span class="kpi-lbl">Total WL</span>
-        <span class="kpi-val" id="kpi-wl-val">₹ 0.00</span>
+        <span class="kpi-val" id="kpi-wl-val">₹ 0.00 M</span>
         <span class="kpi-sub" id="kpi-wl-count">0 CIFs</span>
       </div>
     </div>
@@ -1075,7 +1163,7 @@
       <div class="kpi-icon"><i class="material-icons-round">gpp_maybe</i></div>
       <div class="kpi-content">
         <span class="kpi-lbl">Total PNPA</span>
-        <span class="kpi-val" id="kpi-pnpa-val">₹ 0.00</span>
+        <span class="kpi-val" id="kpi-pnpa-val">₹ 0.00 M</span>
         <span class="kpi-sub" id="kpi-pnpa-count">0 CIFs</span>
       </div>
     </div>
@@ -1083,7 +1171,7 @@
       <div class="kpi-icon"><i class="material-icons-round">help_outline</i></div>
       <div class="kpi-content">
         <span class="kpi-lbl">Total PWL</span>
-        <span class="kpi-val" id="kpi-pwl-val">₹ 0.00</span>
+        <span class="kpi-val" id="kpi-pwl-val">₹ 0.00 M</span>
         <span class="kpi-sub" id="kpi-pwl-count">0 CIFs</span>
       </div>
     </div>
@@ -1091,7 +1179,7 @@
       <div class="kpi-icon"><i class="material-icons-round">check_circle</i></div>
       <div class="kpi-content">
         <span class="kpi-lbl">Total Pass</span>
-        <span class="kpi-val" id="kpi-pass-val">₹ 0.00</span>
+        <span class="kpi-val" id="kpi-pass-val">₹ 0.00 M</span>
         <span class="kpi-sub" id="kpi-pass-count">0 CIFs</span>
       </div>
     </div>
@@ -1167,36 +1255,40 @@
   </div>
 
   <!-- Summary Tables -->
-  <div class="summary-grid" style="margin-top: 28px;">
-    <div class="summary-card">
-      <h3>Relationship Summary- PNPA</h3>
-      <div class="summary-table-wrap">
-        <table class="summary-table" id="relSummaryTable">
-          <thead>
-            <tr>
-              <th>Relationship</th>
-              <th style="text-align:right;">Accounts</th>
-              <th style="text-align:right;">Vol. (₹ M)</th>
-            </tr>
-          </thead>
-          <tbody id="relSummaryBody"></tbody>
-        </table>
+  <div class="summary-carousel-wrap">
+    <div class="summary-grid" id="summaryGrid">
+      <div class="summary-card">
+        <div class="s-card-header">
+          <h3>Relationship Summary - PNPA</h3>
+          <div class="s-sub">Accounts by relationship type</div>
+        </div>
+        <div class="s-card-body">
+          <div class="summary-header-row">
+            <span class="s-label">Relationship</span>
+            <span class="s-count">Accounts</span>
+            <span class="s-vol">Vol. (₹ M)</span>
+          </div>
+          <div class="summary-rows" id="relSummaryBody"></div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="s-card-header">
+          <h3>RM — PNPA Summary</h3>
+          <div class="s-sub">PNPA accounts by RM</div>
+        </div>
+        <div class="s-card-body">
+          <div class="summary-header-row">
+            <span class="s-label">RM</span>
+            <span class="s-count">PNPA Count</span>
+            <span class="s-vol">Vol. (₹ M)</span>
+          </div>
+          <div class="summary-rows" id="rmSummaryBody"></div>
+        </div>
       </div>
     </div>
-    <div class="summary-card">
-      <h3>RM — PNPA Summary</h3>
-      <div class="summary-table-wrap">
-        <table class="summary-table" id="rmSummaryTable">
-          <thead>
-            <tr>
-              <th>RM</th>
-              <th style="text-align:right;">PNPA Count</th>
-              <th style="text-align:right;">Vol. (₹ M)</th>
-            </tr>
-          </thead>
-          <tbody id="rmSummaryBody"></tbody>
-        </table>
-      </div>
+    <div class="carousel-dots" id="summaryDots">
+      <span class="dot active" data-index="0"></span>
+      <span class="dot" data-index="1"></span>
     </div>
   </div>
 </div>
@@ -1489,21 +1581,21 @@
       }
     });
     
-    document.getElementById('kpi-total-ovd').innerText = fAmt(totOvd);
+    document.getElementById('kpi-total-ovd').innerText = fMio(totOvd);
     
-    document.getElementById('kpi-npa-val').innerText = fAmt(npaVal);
+    document.getElementById('kpi-npa-val').innerText = fMio(npaVal);
     document.getElementById('kpi-npa-count').innerText = `${npaCifs.size} CIF${npaCifs.size !== 1 ? 's' : ''}`;
     
-    document.getElementById('kpi-wl-val').innerText = fAmt(wlVal);
+    document.getElementById('kpi-wl-val').innerText = fMio(wlVal);
     document.getElementById('kpi-wl-count').innerText = `${wlCifs.size} CIF${wlCifs.size !== 1 ? 's' : ''}`;
     
-    document.getElementById('kpi-pnpa-val').innerText = fAmt(pnpaVal);
+    document.getElementById('kpi-pnpa-val').innerText = fMio(pnpaVal);
     document.getElementById('kpi-pnpa-count').innerText = `${pnpaCifs.size} CIF${pnpaCifs.size !== 1 ? 's' : ''}`;
     
-    document.getElementById('kpi-pwl-val').innerText = fAmt(pwlVal);
+    document.getElementById('kpi-pwl-val').innerText = fMio(pwlVal);
     document.getElementById('kpi-pwl-count').innerText = `${pwlCifs.size} CIF${pwlCifs.size !== 1 ? 's' : ''}`;
     
-    document.getElementById('kpi-pass-val').innerText = fAmt(passVal);
+    document.getElementById('kpi-pass-val').innerText = fMio(passVal);
     document.getElementById('kpi-pass-count').innerText = `${passCifs.size} CIF${passCifs.size !== 1 ? 's' : ''}`;
 
     const kpis = ['kpi-total-ovd', 'kpi-npa-val', 'kpi-wl-val', 'kpi-pnpa-val', 'kpi-pwl-val', 'kpi-pass-val'];
@@ -1718,7 +1810,7 @@
   function fMio(v) { return (Number(v) / 1e6).toFixed(2) + ' M'; }
 
   function renderSummaryTables(data = allMetrics) {
-    // Table 1: Relationship Summary- PNPA
+    // Slide 1: Relationship Summary
     const relMap = new Map();
     data.forEach(m => {
       const rel = (m.RELATIONSHIP || m.accounts?.[0]?.RELATIONSHIP || 'Branch').trim();
@@ -1729,15 +1821,17 @@
     });
     const relBody = document.getElementById('relSummaryBody');
     if (relBody) {
-      const sortedRel = Array.from(relMap.entries()).sort((a, b) => b[1].count - a[1].count);
-      let relHtml = '';
-      sortedRel.forEach(([rel, info]) => {
-        relHtml += `<tr><td>${rel}</td><td>${info.count}</td><td>${fMio(info.volume)}</td></tr>`;
-      });
-      relBody.innerHTML = relHtml;
+      const sorted = Array.from(relMap.entries()).sort((a, b) => b[1].count - a[1].count);
+      relBody.innerHTML = sorted.map(([rel, info]) =>
+        `<div class="summary-row">
+          <span class="s-label">${rel}</span>
+          <span class="s-count">${info.count}</span>
+          <span class="s-vol">${fMio(info.volume)}</span>
+        </div>`
+      ).join('');
     }
 
-    // Table 2: RM — PNPA Summary
+    // Slide 2: RM — PNPA Summary
     const rmMap = new Map();
     data.forEach(m => {
       const rm = m.ASSIGNED_RM || 'Unassigned';
@@ -1751,15 +1845,36 @@
     });
     const rmBody = document.getElementById('rmSummaryBody');
     if (rmBody) {
-      const sortedRms = Array.from(rmMap.entries()).sort((a, b) => b[1].pnpaCount - a[1].pnpaCount);
-      let rmHtml = '';
-      sortedRms.forEach(([rm, info]) => {
-        if (info.pnpaCount > 0) {
-          rmHtml += `<tr><td>${rm}</td><td>${info.pnpaCount}</td><td>${fMio(info.volume)}</td></tr>`;
-        }
-      });
-      if (!rmHtml) rmHtml = '<tr><td colspan="3" style="text-align:center;color:var(--theme-text-muted);padding:24px;">No PNPA accounts</td></tr>';
-      rmBody.innerHTML = rmHtml;
+      const sorted = Array.from(rmMap.entries()).sort((a, b) => b[1].pnpaCount - a[1].pnpaCount);
+      const hasPnpa = sorted.some(([, info]) => info.pnpaCount > 0);
+      rmBody.innerHTML = hasPnpa
+        ? sorted.filter(([, info]) => info.pnpaCount > 0).map(([rm, info]) =>
+          `<div class="summary-row">
+            <span class="s-label">${rm}</span>
+            <span class="s-count">${info.pnpaCount}</span>
+            <span class="s-vol">${fMio(info.volume)}</span>
+          </div>`
+        ).join('')
+        : '<div style="text-align:center;color:#999;padding:24px;font-size:13px;">No PNPA accounts</div>';
+    }
+  }
+
+  // --- Mobile Carousel: scroll sync dots ---
+  {
+    const grid = document.getElementById('summaryGrid');
+    const dots = document.querySelectorAll('#summaryDots .dot');
+    if (grid && dots.length) {
+      const updateDots = () => {
+        if (window.innerWidth > 768) return;
+        const idx = Math.round(grid.scrollLeft / (grid.children[0]?.offsetWidth || grid.clientWidth));
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      };
+      grid.addEventListener('scroll', updateDots);
+      dots.forEach(d => d.addEventListener('click', () => {
+        const i = parseInt(d.dataset.index);
+        const slideW = grid.children[0]?.offsetWidth || grid.clientWidth;
+        grid.scrollTo({ left: slideW * i, behavior: 'smooth' });
+      }));
     }
   }
 
