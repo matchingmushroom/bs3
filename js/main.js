@@ -45,7 +45,7 @@ async function loadCustomerListLegacy() {
   }
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
   try {
     const data = await callBackend('customers', {}, controller.signal);
     clearTimeout(timeoutId);
