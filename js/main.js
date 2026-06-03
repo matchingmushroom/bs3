@@ -254,7 +254,7 @@ async function renderSearchResultsGrid(list) {
     return;
   }
   
-  const metricsList = await Promise.all(list.map(c => crmDb.get('metrics', c.id).then(m => m || c.metrics || null)));
+  const metricsList = list.map(c => c.metrics || null);
   
   for (let i = 0; i < list.length; i++) {
     const c = list[i];
