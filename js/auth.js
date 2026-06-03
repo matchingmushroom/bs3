@@ -14,7 +14,7 @@ async function performFirebaseAuthentication() {
     fbConfig = await callBackend('getFirebaseConfig');
   } catch(e) {
     toggleLoader(false);
-    showToast('Could not fetch Firebase config. Check network or deploy new script version.', 'error');
+    showToast('Could not fetch Login record. Check network or excel record.', 'error');
     return;
   }
   
@@ -46,7 +46,7 @@ function initFirebaseAndAuth(config, email, pass) {
         toggleLoader(false);
         const user = userCredential.user;
         localStorage.setItem('crm_auth_user', JSON.stringify({ email: user.email, uid: user.uid }));
-        showToast('Authenticated successfully with Firebase.', 'success');
+        showToast('Authenticated successfully with Excel File.', 'success');
         
         showMainAppDashboard();
       })

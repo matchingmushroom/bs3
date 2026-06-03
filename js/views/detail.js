@@ -26,7 +26,7 @@ async function loadDetails() {
     } catch (err) {
       clearTimeout(timeoutId);
       toggleLoader(false);
-      if (!cached) showToast("Failed to retrieve metrics from NIC ASIA servers.", 'error');
+      if (!cached) showToast("Failed to retrieve metrics from excel in your phone.", 'error');
     }
   } else {
     toggleLoader(false);
