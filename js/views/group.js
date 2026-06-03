@@ -34,6 +34,9 @@ function renderGroup(d) {
     return; 
   }
   
+
+  const totalNpaSaver = d.units.reduce((sum, u) => sum + (parseFloat(u.minNpa) || 0), 0);
+  const totalWlSaver = d.units.reduce((sum, u) => sum + (parseFloat(u.minWl) || 0), 0);
   let html = `
     <div class="group-hero-card">
       <div class="group-hero-title">${d.summary.groupName}</div>
@@ -42,6 +45,8 @@ function renderGroup(d) {
         <div class="group-hero-item"><span class="group-hero-lbl">Total Loan</span><span class="group-hero-val">${fAmt(d.summary.totalLoan)}</span></div>
         <div class="group-hero-item"><span class="group-hero-lbl">Total Overdue</span><span class="group-hero-val">${fAmt(d.summary.totalOvd)}</span></div>
         <div class="group-hero-item"><span class="group-hero-lbl">Net Overdue</span><span class="group-hero-val" style="color:var(--danger);">${fAmt(d.summary.totalNetOvd)}</span></div>
+        <div class="group-hero-item"><span class="group-hero-lbl">NPA Saver</span><span class="group-hero-val" style="color:var(--danger);">${fAmt(totalNpaSaver)}</span></div>
+        <div class="group-hero-item"><span class="group-hero-lbl">WL Saver</span><span class="group-hero-val" style="color:var(--warning);">${fAmt(totalWlSaver)}</span></div>
       </div>
     </div>
     <div class="table-section-title"><span><i class="material-icons-round" style="vertical-align:middle; margin-right:6px; color:var(--accent-gold);">groups</i> Group Members</span></div>
