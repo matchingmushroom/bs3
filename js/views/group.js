@@ -90,7 +90,8 @@ async function loadMemberDiscStatus(memberName) {
   const cifId = map[memberName];
   if (!cifId) return;
   
-  const metrics = await crmDb.get('metrics', cifId);
+  const cust = customers.find(c => c.id === cifId);
+  const metrics = cust?.metrics || await crmDb.get('metrics', cifId);
   if (metrics && metrics.accounts) {
     const hasDisc = metrics.accounts.some(a => {
       const rate = parseFloat(a.FULL_RATE) || 0;

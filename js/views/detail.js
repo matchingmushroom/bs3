@@ -1,5 +1,6 @@
 async function loadDetails() {
-  const cached = await crmDb.get('metrics', currentCIF);
+  const customer = customers.find(c => c.id === currentCIF);
+  const cached = customer?.metrics || await crmDb.get('metrics', currentCIF);
   
   if (!cached) {
     showDetailSkeleton();

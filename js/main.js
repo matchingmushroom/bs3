@@ -70,6 +70,11 @@ async function loadCustomerListLegacy() {
     const inp = document.getElementById('searchInp');
     const query = inp ? inp.value : '';
     triggerFuzzySearch(query);
+
+    // Post-sync refresh detail/group views if currently open
+    const activeView = document.querySelector('.view:not(.hidden)');
+    if (activeView?.id === 'view-detail' && currentCIF) loadDetails();
+    else if (activeView?.id === 'view-group') loadGroupDetails();
   }
 }
 
