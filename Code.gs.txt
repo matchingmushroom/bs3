@@ -243,7 +243,7 @@ function getCategoryCriteria() {
   try { range = ss.getRangeByName('Category'); } catch (e) { range = null; }
 
   if (!range) {
-    const data = dropSheet.getDataRange().getDisplayValues();
+    const data = dropSheet.getDataRange().getValues();
     const headerRow = data.findIndex(row => row.includes('DatefROM') && row.includes('DateTo'));
     if (headerRow === -1) return getDefaultCategories();
     const headers = data[headerRow];
@@ -252,29 +252,29 @@ function getCategoryCriteria() {
     const actualCol = headers.indexOf('Category_Actual');
     const probableCol = headers.indexOf('Category_Probable');
     if (minCol === -1 || maxCol === -1 || actualCol === -1 || probableCol === -1) return getDefaultCategories();
-    const rows = data.slice(headerRow + 1).filter(row => row[minCol] && row[maxCol]);
+    const rows = data.slice(headerRow + 1).filter(row => row[minCol] !== "" && row[maxCol] !== "");
     const criteria = rows.map(row => ({
       min: parseInt(row[minCol]) || 0,
       max: parseInt(row[maxCol]) || 9999999,
-      actual: row[actualCol]?.trim() || 'Pass',
-      probable: row[probableCol]?.trim() || 'Pass'
+      actual: String(row[actualCol] || '').trim() || 'Pass',
+      probable: String(row[probableCol] || '').trim() || 'Pass'
     })).sort((a, b) => a.min - b.min);
     CATEGORY_CRITERIA = criteria;
     return criteria;
   }
 
-  const values = range.getDisplayValues();
+  const values = range.getValues();
   const headers = values[0];
   const minCol = headers.indexOf('DatefROM');
   const maxCol = headers.indexOf('DateTo');
   const actualCol = headers.indexOf('Category_Actual');
   const probableCol = headers.indexOf('Category_Probable');
   if (minCol === -1 || maxCol === -1 || actualCol === -1 || probableCol === -1) return getDefaultCategories();
-  const criteria = values.slice(1).filter(row => row[minCol] && row[maxCol]).map(row => ({
+  const criteria = values.slice(1).filter(row => row[minCol] !== "" && row[maxCol] !== "").map(row => ({
     min: parseInt(row[minCol]) || 0,
     max: parseInt(row[maxCol]) || 9999999,
-    actual: row[actualCol]?.trim() || 'Pass',
-    probable: row[probableCol]?.trim() || 'Pass'
+    actual: String(row[actualCol] || '').trim() || 'Pass',
+    probable: String(row[probableCol] || '').trim() || 'Pass'
   })).sort((a, b) => a.min - b.min);
   CATEGORY_CRITERIA = criteria;
   return criteria;
@@ -291,18 +291,22 @@ function getSheetData() {
   if (!sheet) throw new Error("Sheet 'Data' not found.");
   const range = sheet.getDataRange();
   const rawValues = range.getValues();
-  const displayValues = range.getDisplayValues();
   const headers = rawValues[0].map(h => String(h).trim().toUpperCase().replace(/\s+/g, '_'));
   const data = [];
   for (let i = 1; i < rawValues.length; i++) {
     let obj = {};
     headers.forEach((header, j) => {
+      var rawVal = rawValues[i][j];
       if (["OVD_DATE", "NEPALI_OVD_MONTH", "NEPALI_OVD_YEAR", "CIF_ID", "ACCOUNT_NO", "CUSTOMER_GROUP", "RENEWAL", "CATEGORY_ACTUAL", "CATEGORY_PROBABLE"].includes(header)) {
-        var val = String(displayValues[i][j]).trim();
-        if (header === "CIF_ID") val = val.replace(/^0+/, '');
-        obj[header] = val;
+        if (rawVal instanceof Date) {
+          obj[header] = rawVal;
+        } else {
+          var val = (rawVal === null || rawVal === undefined) ? "" : String(rawVal).trim();
+          if (header === "CIF_ID") val = val.replace(/^0+/, '');
+          obj[header] = val;
+        }
       } else {
-        obj[header] = rawValues[i][j];
+        obj[header] = rawVal;
       }
     });
     data.push(obj);
@@ -705,8 +709,8 @@ function getSlicerOptions(cifId) {
   let yearsSet = new Set();
   let monthsSet = new Set();
   records.forEach(r => {
-    if (r.NEPALI_OVD_Year) yearsSet.add(String(r.NEPALI_OVD_Year));
-    if (r.NEPALI_OVD_Month) monthsSet.add(String(r.NEPALI_OVD_Month));
+    if (r.NEPALI_OVD_YEAR) yearsSet.add(String(r.NEPALI_OVD_YEAR));
+    if (r.NEPALI_OVD_MONTH) monthsSet.add(String(r.NEPALI_OVD_MONTH));
   });
   const sortedYears = Array.from(yearsSet).sort().reverse();
   const sortedMonths = Array.from(monthsSet).sort((a, b) => NEPALI_MONTHS.indexOf(a) - NEPALI_MONTHS.indexOf(b));
@@ -716,9 +720,9 @@ function getSlicerOptions(cifId) {
 function getSlicerSummary(cifId, yearsArray, months) {
   const data = getSheetData();
   const filtered = data.filter(r => {
-    const rYear = String(r.NEPALI_OVD_Year);
+    const rYear = String(r.NEPALI_OVD_YEAR);
     const isYear = yearsArray.includes("ALL") || yearsArray.includes(rYear);
-    return r.CIF_ID === cifId && isYear && months.includes(r.NEPALI_OVD_Month) && isValid(r.TOT_OVD_AMT);
+    return r.CIF_ID === cifId && isYear && months.includes(r.NEPALI_OVD_MONTH) && isValid(r.TOT_OVD_AMT);
   });
   const group = {};
   
@@ -738,7 +742,7 @@ function getSlicerSummary(cifId, yearsArray, months) {
       adjustedPOvd = 0;
     }
     
-    let m = r.NEPALI_OVD_Month; 
+    let m = r.NEPALI_OVD_MONTH; 
     if (!group[m]) group[m] = { NEPALI_OVD_Month: m, TOT_OVD_AMT: 0, I_OVD: 0, P_OVD: 0, PENAL_INT: 0 };
     
     group[m].TOT_OVD_AMT += adjustedTotOvd;
@@ -862,7 +866,7 @@ function loadFullData() {
   const cifToRm = new Map();
   const cifToRel = new Map();
   if (customerInfoSheet) {
-    const ciData = customerInfoSheet.getDataRange().getDisplayValues();
+    const ciData = customerInfoSheet.getDataRange().getValues();
     Logger.log('CustomerInfo rows: ' + ciData.length);
     if (ciData.length > 1) {
       const ciHeaders = ciData[0].map(function(h) { return String(h).trim(); });

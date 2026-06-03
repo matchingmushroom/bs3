@@ -117,6 +117,17 @@ function showDetailSkeleton() {
   document.getElementById('det-name').innerHTML = '<div class="skeleton skeleton-title"></div>';
   document.getElementById('det-id').innerHTML = '<div class="skeleton skeleton-text" style="width:100px;"></div>';
   document.getElementById('det-group-tag').style.display = 'none';
+  
+  // Set skeleton loaders for metric values
+  document.getElementById('v-net-ovd').innerHTML = '<div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div>';
+  document.getElementById('v-tot-ovd').innerHTML = '<div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div>';
+  document.getElementById('v-npa').innerHTML = '<div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div>';
+  document.getElementById('v-wl').innerHTML = '<div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div>';
+  document.getElementById('v-days').innerHTML = '<div class="skeleton skeleton-text" style="width: 60px; height: 26px; margin: 4px 0;"></div>';
+  document.getElementById('v-loan').innerHTML = '<div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div>';
+  document.getElementById('v-op').innerHTML = '<div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div>';
+  document.getElementById('v-renewal').innerHTML = '<div class="skeleton skeleton-text" style="width: 100px; height: 26px; margin: 4px 0;"></div>';
+
   document.getElementById('tbl-loan').querySelector('tbody').innerHTML = `
     <tr><td colspan="6"><div class="skeleton skeleton-text" style="width:100%;"></div></td></tr>
     <tr><td colspan="6"><div class="skeleton skeleton-text" style="width:100%;"></div></td></tr>
