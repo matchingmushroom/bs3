@@ -13,8 +13,8 @@ let CATEGORY_CRITERIA = null;
 var CATEGORY_CONFIG = {
   rules: [
     { min: 0, max: 29, actual: 'Pass', probable: 'Pass' },
-    { min: 30, max: 89, actual: 'WL', probable: 'PWL' },
-    { min: 90, max: 9999999, actual: 'NPA', probable: 'PNPA' }
+    { min: 30, max: 94, actual: 'WL', probable: 'PWL' },
+    { min: 95, max: 9999999, actual: 'NPA', probable: 'PNPA' }
   ],
   // Controls whether P_OVD (Principal Overdue) is included in category calculation
   // for EXPIRED accounts. true = P_OVD always counted (current behavior);
@@ -1815,7 +1815,7 @@ function syncAll() {
   var syncToken = ScriptApp.getOAuthToken();
   var baseUrl = 'https://firestore.googleapis.com/v1/projects/' + FIRESTORE_PROJECT + '/databases/(default)/documents/';
 
-  var wipeCollections = ['customers', 'metrics', 'groups', 'insights', 'customerInfo'];
+  var wipeCollections = ['customers', 'metrics', 'groups', 'insights', 'customerInfo', 'commitments'];
 
   var deletedCount = 0;
   wipeCollections.forEach(function(coll) {
@@ -1936,11 +1936,47 @@ function syncToFirestore() {
     }
   }
 
+  // ========== SYNC COMMITMENTS SHEET ==========
+  var commitmentCount = 0;
+  try {
+    var comSheet = getCommitmentsSheet_();
+    if (comSheet) {
+      var comData = comSheet.getDataRange().getValues();
+      if (comData.length > 1) {
+        var comHeaders = comData[0].map(function(h) { return String(h).trim(); });
+        var cifIdx = comHeaders.indexOf('CIF_ID');
+        var nameIdx = comHeaders.indexOf('Customer_Name');
+        var dateIdx = comHeaders.indexOf('CommitmentDate');
+        var remarksIdx = comHeaders.indexOf('Remarks');
+        var tsIdx = comHeaders.indexOf('TimeStamp');
+        if (cifIdx !== -1 && dateIdx !== -1) {
+          for (var i = 1; i < comData.length; i++) {
+            var comRow = comData[i];
+            var comCif = String(comRow[cifIdx]).trim();
+            var comDate = String(comRow[dateIdx] || '').trim();
+            if (!comCif || !comDate) continue;
+            var comDocId = 'sheet_' + i;
+            qw('commitments', comDocId, {
+              cifId: comCif,
+              customerName: nameIdx !== -1 ? String(comRow[nameIdx] || '') : '',
+              date: comDate,
+              remarks: remarksIdx !== -1 ? String(comRow[remarksIdx] || '') : '',
+              timestamp: tsIdx !== -1 ? comRow[tsIdx] : new Date()
+            });
+            commitmentCount++;
+          }
+        }
+      }
+    }
+  } catch(e) {
+    Logger.log('Commitments sync error (non-fatal): ' + e);
+  }
+
   flush();
 
   var elapsed = new Date().getTime() - start;
-  Logger.log('Firestore sync complete: ' + customerCount + ' customers, ' + groupCount + ' groups, ' + contactCount + ' contacts in ' + elapsed + 'ms');
-  return { success: true, customers: customerCount, groups: groupCount, contacts: contactCount, elapsed: elapsed };
+  Logger.log('Firestore sync complete: ' + customerCount + ' customers, ' + groupCount + ' groups, ' + contactCount + ' contacts, ' + commitmentCount + ' commitments in ' + elapsed + 'ms');
+  return { success: true, customers: customerCount, groups: groupCount, contacts: contactCount, commitments: commitmentCount, elapsed: elapsed };
 }
 
 function onEdit(e) {
