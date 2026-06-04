@@ -1830,7 +1830,7 @@ function syncAll() {
       var data = JSON.parse(resp.getContentText());
       if (data.documents) {
         data.documents.forEach(function(doc) {
-          UrlFetchApp.fetch(doc.name + '?allowMissing=true', {
+          UrlFetchApp.fetch('https://firestore.googleapis.com/v1/' + doc.name + '?allowMissing=true', {
             method: 'DELETE',
             headers: { 'Authorization': 'Bearer ' + syncToken },
             muteHttpExceptions: true
@@ -1966,6 +1966,7 @@ function onEdit(e) {
     lock.releaseLock();
   }
 }
+
 
 
 
