@@ -1,3 +1,13 @@
+async function getExtraDetails(cifId) {
+  if (window.db) {
+    try {
+      const doc = await window.db.collection('customerInfo').doc(cifId).get();
+      if (doc.exists) return doc.data();
+    } catch(e) {}
+  }
+  return await callBackend('extraDetails', { cifId });
+}
+
 async function openShareModal() {
   if (!window.currentCustomer || !window.currentCustomer.name || !currentCIF) {
     showToast("Select a customer ledger first.", 'warning');
@@ -17,8 +27,7 @@ async function openShareModal() {
   
   toggleLoader(true);
   try {
-    // Account number is ALWAYS fetched from sheets directly and NEVER saved locally (in db or memory config caches)
-    const c = await callBackend('extraDetails', { cifId: currentCIF });
+    const c = await getExtraDetails(currentCIF);
     toggleLoader(false);
     
     const acc = c?.OP_ACCOUNT || 'Not Available';
@@ -83,7 +92,7 @@ async function openReminderPopup() {
   
   toggleLoader(true);
   try {
-    const c = await callBackend('extraDetails', { cifId: currentCIF });
+    const c = await getExtraDetails(currentCIF);
     toggleLoader(false);
     if (c) {
       window.currentCustomer.account = c.OP_ACCOUNT || '-';

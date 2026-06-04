@@ -1,0 +1,21 @@
+{
+  "name": "bs-main-functions",
+  "description": "Cloud Functions for Behind Schedule role management",
+  "scripts": {
+    "lint": "eslint .",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^11.11.0",
+    "firebase-functions": "^4.5.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.40.0"
+  },
+  "private": true
+}

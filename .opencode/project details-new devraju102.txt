@@ -1,0 +1,3 @@
+FIREBASE_PROJECT_ID:behind-schedule3
+FIREBASE_API_KEY: AIzaSyDRInOFt55sjvVvsYFeMbqKlXSeAZjKBxk
+Firebase Project Number: 41790671898

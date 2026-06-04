@@ -9,7 +9,31 @@ window.onload = async () => {
   checkSessionOnLoad();
 };
 
+async function loadCustomersFromFirestore() {
+  if (!window.db) return false;
+  try {
+    const snapshot = await window.db.collection('customers').get();
+    if (!snapshot.empty) {
+      customers = [];
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        customers.push({ id: d.cifId, name: d.name, metrics: d });
+      });
+      return true;
+    }
+  } catch(e) {
+    console.warn('Firestore customers read failed:', e);
+  }
+  return false;
+}
+
 async function loadInitialCachedLedgers() {
+  const loaded = await loadCustomersFromFirestore();
+  if (loaded && customers.length > 0) {
+    showToast(`Loaded ${customers.length} records.`, 'success');
+    triggerFuzzySearch('');
+    return;
+  }
   const cachedList = await crmDb.getAll('customers');
   if (cachedList.length > 0) {
     customers = cachedList;
@@ -19,62 +43,19 @@ async function loadInitialCachedLedgers() {
 }
 
 async function syncLedgerDataOnStart() {
-  if (!navigator.onLine) {
-    const cachedList = await crmDb.getAll('customers');
-    if (cachedList.length > 0) {
-      customers = cachedList;
-      triggerFuzzySearch(document.getElementById('searchInp')?.value || '');
-    }
+  const loaded = await loadCustomersFromFirestore();
+  if (loaded && customers.length > 0) {
+    triggerFuzzySearch(document.getElementById('searchInp')?.value || '');
+    // Refresh detail/group views if currently open
+    const activeView = document.querySelector('.view:not(.hidden)');
+    if (activeView?.id === 'view-detail' && currentCIF) loadDetails();
+    else if (activeView?.id === 'view-group') loadGroupDetails();
     return;
   }
-  await loadCustomerListLegacy();
-}
-
-async function loadCustomerListLegacy() {
-  toggleLoader(true);
-  
   const cachedList = await crmDb.getAll('customers');
   if (cachedList.length > 0) {
     customers = cachedList;
     triggerFuzzySearch(document.getElementById('searchInp')?.value || '');
-  }
-  
-  if (!navigator.onLine) {
-    toggleLoader(false);
-    return;
-  }
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
-  try {
-    const data = await callBackend('customers', {}, controller.signal);
-    clearTimeout(timeoutId);
-    if (Array.isArray(data) && data.length > 0) {
-      customers = data;
-      await crmDb.clearStore('customers');
-      const writes = data.flatMap(c => {
-        const ops = [crmDb.put('customers', c)];
-        if (c.metrics) ops.push(crmDb.put('metrics', c.metrics));
-        return ops;
-      });
-      await Promise.all(writes);
-      showToast(`Loaded ${customers.length} customer ledgers.`, 'success');
-    }
-  } catch(e) {
-    clearTimeout(timeoutId);
-    if (customers.length === 0) {
-      showToast('Server unreachable. Operating with cached data.', 'warning');
-    }
-  } finally {
-    toggleLoader(false);
-    const inp = document.getElementById('searchInp');
-    const query = inp ? inp.value : '';
-    triggerFuzzySearch(query);
-
-    // Post-sync refresh detail/group views if currently open
-    const activeView = document.querySelector('.view:not(.hidden)');
-    if (activeView?.id === 'view-detail' && currentCIF) loadDetails();
-    else if (activeView?.id === 'view-group') loadGroupDetails();
   }
 }
 

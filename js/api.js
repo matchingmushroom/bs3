@@ -5,7 +5,7 @@ const API_BASE = (() => {
   if (url.origin.includes('google.com') || url.origin.includes('googleusercontent.com')) {
     return url.origin + url.pathname;
   }
-  return 'https://script.google.com/macros/s/AKfycbxqd5HkGGf7VT2-SlOsgb6VpNNbAUdMTbjZu6kOQyasNNerd9pzKhCQ5QE7RDd5o4_z3A/exec';
+  return 'https://script.google.com/macros/s/AKfycbyZRXelgj4fQqZMdWUnK2FW7dP9-n-QpzhLiR02OgDd_dqgCWzKlabRooV6w9-EIw68/exec';
 })();
 
 const _pendingRequests = {};
@@ -37,6 +37,12 @@ async function isCacheFresh(cacheKey = 'last_full_sync', maxAgeMs = 5 * 60 * 100
 }
 
 async function getCachedExtraDetails(cifId, maxAgeMs = 15 * 60 * 1000) {
+  if (window.db) {
+    try {
+      const doc = await window.db.collection('customerInfo').doc(cifId).get();
+      if (doc.exists) return doc.data();
+    } catch(e) {}
+  }
   const cached = await crmDb.getKV('contact_' + cifId);
   if (cached && cached._cachedAt && (Date.now() - cached._cachedAt < maxAgeMs)) {
     return cached;
@@ -66,6 +72,12 @@ async function setCachedInsights(cifId, key, data) {
 }
 
 async function getCachedInsights(cifId, apiAction, cacheKey) {
+  if (window.db) {
+    try {
+      const doc = await window.db.collection('insights').doc(cifId).get();
+      if (doc.exists) return doc.data();
+    } catch(e) {}
+  }
   const cached = await crmDb.getKV(cacheKey + '_' + cifId);
   if (cached && cached._cachedAt && (Date.now() - cached._cachedAt < 5 * 60 * 1000)) {
     return cached;

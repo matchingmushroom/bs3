@@ -38,6 +38,14 @@ async function performFirebaseAuthentication() {
   }
 }
 
+function applyRoleUI() {
+  const isAdmin = window.userRole === 'admin';
+  localStorage.setItem('crm_user_role', window.userRole || 'viewer');
+  // Hide admin-only elements
+  document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', !isAdmin));
+  document.querySelectorAll('.viewer-hidden').forEach(el => el.classList.toggle('hidden', !isAdmin));
+}
+
 function initFirebaseAndAuth(config, email, pass) {
   try {
     firebase.initializeApp(config);
@@ -47,6 +55,19 @@ function initFirebaseAndAuth(config, email, pass) {
         const user = userCredential.user;
         localStorage.setItem('crm_auth_user', JSON.stringify({ email: user.email, uid: user.uid }));
         showToast('Authenticated successfully with Excel File.', 'success');
+        
+        // Initialize Firestore
+        window.db = firebase.firestore();
+        window.db.settings({ persistence: true });
+        
+        // Read user role from Firestore roles collection
+        window.db.collection('roles').doc(user.uid).get().then(doc => {
+          window.userRole = doc.exists ? (doc.data().role || 'viewer') : 'viewer';
+          applyRoleUI();
+        }).catch(() => {
+          window.userRole = 'viewer';
+          applyRoleUI();
+        });
         
         showMainAppDashboard();
       })
@@ -93,6 +114,24 @@ function checkSessionOnLoad() {
       try {
         const config = JSON.parse(cachedConfig);
         if (firebase.apps.length === 0) firebase.initializeApp(config);
+      } catch(e) {}
+    }
+    if (firebase.apps.length > 0) {
+      window.db = firebase.firestore();
+      window.db.settings({ persistence: true });
+    }
+    window.userRole = localStorage.getItem('crm_user_role') || 'viewer';
+    applyRoleUI();
+    // Re-fetch role from Firestore in background (may be stale from cache)
+    if (window.db) {
+      try {
+        const userData = JSON.parse(cachedUser);
+        window.db.collection('roles').doc(userData.uid).get().then(doc => {
+          if (doc.exists) {
+            window.userRole = doc.data().role || 'viewer';
+            applyRoleUI();
+          }
+        }).catch(() => {});
       } catch(e) {}
     }
     showMainAppDashboard();
@@ -154,19 +193,29 @@ async function saveCommitment() {
   
   toggleLoader(true);
   try {
-    const res = await callBackend('saveCommitment', {
-      cifId: currentCIF,
-      customerName: window.currentCustomer.name,
-      date: dateVal,
-      remarks: remarksVal
-    });
-    toggleLoader(false);
-    if (res && res.success) {
-      showToast('Commitment saved to sheet and notified.', 'success');
-      closeCommitmentModal();
+    if (window.db) {
+      await window.db.collection('commitments').add({
+        cifId: currentCIF,
+        customerName: window.currentCustomer.name,
+        date: dateVal,
+        remarks: remarksVal,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('Commitment saved to Firestore.', 'success');
     } else {
-      showToast('Save failed: ' + (res?.error || 'Server error'), 'error');
+      const res = await callBackend('saveCommitment', {
+        cifId: currentCIF,
+        customerName: window.currentCustomer.name,
+        date: dateVal,
+        remarks: remarksVal
+      });
+      if (!res || !res.success) {
+        showToast('Save failed: ' + (res?.error || 'Server error'), 'error');
+        return;
+      }
+      showToast('Commitment saved to sheet and notified.', 'success');
     }
+    closeCommitmentModal();
   } catch(e) {
     toggleLoader(false);
     showToast('Failed to save commitment.', 'error');

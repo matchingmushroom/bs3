@@ -4,27 +4,26 @@ async function loadGroupDetails() {
     return; 
   }
   
-  const cached = await crmDb.get('groups', currentGroup);
-  if (cached) renderGroup(cached);
-  else toggleLoader(true);
+  let d = null;
+  const groupKey = currentGroup.replace(/[^a-zA-Z0-9_-]/g, '_');
   
-  if (navigator.onLine) {
-    const fresh = await isCacheFresh();
-    if (cached && fresh) {
-      toggleLoader(false);
-      return;
-    }
+  if (window.db) {
     try {
-      const d = await callBackend('group', { groupName: currentGroup });
-      toggleLoader(false);
-      await crmDb.put('groups', d);
-      renderGroup(d);
-    } catch (err) {
-      toggleLoader(false);
-      if (!cached) showToast("Group details failed to load.", 'error');
+      const doc = await window.db.collection('groups').doc(groupKey).get();
+      if (doc.exists) d = doc.data();
+    } catch(e) {
+      console.warn('Firestore groups read failed:', e);
     }
+  }
+  
+  if (!d) {
+    d = await crmDb.get('groups', currentGroup);
+  }
+  
+  if (d) {
+    renderGroup(d);
   } else {
-    toggleLoader(false);
+    document.getElementById('group-content').innerHTML = '<div class="glass-card" style="padding:48px; text-align:center; color:var(--theme-text-muted);">Group data not found. Sync from Google Sheets first.</div>';
   }
 }
 
@@ -35,8 +34,8 @@ function renderGroup(d) {
   }
   
 
-  const totalNpaSaver = d.units.reduce((sum, u) => sum + (parseFloat(u.minNpa) || 0), 0);
-  const totalWlSaver = d.units.reduce((sum, u) => sum + (parseFloat(u.minWl) || 0), 0);
+  const totalNpaSaver = d.units ? d.units.reduce((sum, u) => sum + (parseFloat(u.minNpa) || 0), 0) : 0;
+  const totalWlSaver = d.units ? d.units.reduce((sum, u) => sum + (parseFloat(u.minWl) || 0), 0) : 0;
   let html = `
     <div class="group-hero-card">
       <div class="group-hero-title">${d.summary.groupName}</div>
@@ -53,7 +52,7 @@ function renderGroup(d) {
     <div class="member-grid">
   `;
   
-  d.units.forEach(u => {
+  (d.units || []).forEach(u => {
     const actual = u.actual || 'Pass';
     const isNPA = actual.toUpperCase().includes('NPA');
     const isWL = actual.toUpperCase().includes('WL');
@@ -64,7 +63,7 @@ function renderGroup(d) {
         <div class="member-card-hdr">
           <div>
             <div class="member-card-name">${u.name}</div>
-            <div class="member-card-sub">${u.groupName || currentGroup}</div>
+            <div class="member-card-sub">${d.summary.groupName}</div>
           </div>
           <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
             ${getStatusIcons(u.actual, u.probable)}
@@ -84,7 +83,7 @@ function renderGroup(d) {
   html += `</div>`;
   document.getElementById('group-content').innerHTML = html;
   
-  d.units.forEach(u => loadMemberDiscStatus(u.name));
+  (d.units || []).forEach(u => loadMemberDiscStatus(u.name));
 }
 
 async function loadMemberDiscStatus(memberName) {
@@ -96,7 +95,7 @@ async function loadMemberDiscStatus(memberName) {
   if (!cifId) return;
   
   const cust = customers.find(c => c.id === cifId);
-  const metrics = cust?.metrics || await crmDb.get('metrics', cifId);
+  const metrics = cust?.metrics || null;
   if (metrics && metrics.accounts) {
     const hasDisc = metrics.accounts.some(a => {
       const rate = parseFloat(a.FULL_RATE) || 0;

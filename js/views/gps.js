@@ -41,8 +41,25 @@ function closeGpsModal() {
 async function loadGpsRecords() {
   toggleLoader(true);
   try {
-    const d = await callBackend('getGpsRecords', { cifId: gpsCurrentCIF });
-    gpsRecords = d.records || [];
+    gpsRecords = [];
+    if (window.db) {
+      const doc = await window.db.collection('gpsEntries').doc(gpsCurrentCIF).get();
+      if (doc.exists) {
+        const d = doc.data();
+        gpsRecords = (d.locations || []).map((loc, i) => ({
+          rowIndex: i,
+          Customer_Name: loc.customerName || '',
+          CIF_ID: gpsCurrentCIF,
+          LocationType: loc.locationType,
+          CollateralName: loc.label || '',
+          Latitude: loc.latitude,
+          Longitude: loc.longitude,
+          TimeStamp: loc.timestamp ? new Date(loc.timestamp) : new Date()
+        }));
+      }
+    } else {
+      showToast('Firestore unavailable for GPS.', 'warning');
+    }
     renderGpsChips();
     loadGpsImages();
     
@@ -75,8 +92,13 @@ async function loadGpsRecords() {
     toggleLoader(false);
   } catch (e) {
     toggleLoader(false);
-    showToast('Coordinates fetch aborted', 'error');
+    showToast('Coordinates load failed', 'error');
   }
+}
+
+async function saveGpsLocationsToFirestore(locations) {
+  if (!window.db) return;
+  await window.db.collection('gpsEntries').doc(gpsCurrentCIF).set({ locations }, { merge: true });
 }
 
 function renderGpsChips() {
@@ -174,12 +196,23 @@ async function deleteGpsRecord(rowIndex) {
   if (!confirm('Permanently delete this coordination point?')) return;
   toggleLoader(true);
   try {
-    await callBackend('deleteGpsRecord', { rowIndex: rowIndex });
+    const locs = gpsRecords
+      .filter(r => r.rowIndex !== rowIndex)
+      .map(r => ({
+        locationType: r.LocationType,
+        label: r.CollateralName,
+        latitude: r.Latitude,
+        longitude: r.Longitude,
+        customerName: r.Customer_Name,
+        timestamp: r.TimeStamp instanceof Date ? r.TimeStamp.toISOString() : r.TimeStamp
+      }));
+    await saveGpsLocationsToFirestore(locs);
     toggleLoader(false);
     showToast('Record deleted.', 'success');
     loadGpsRecords();
   } catch(e) {
     toggleLoader(false);
+    showToast('Delete failed.', 'error');
   }
 }
 
@@ -215,33 +248,55 @@ async function submitGpsForm() {
     return;
   }
   
-  const params = {
-    cifId: gpsCurrentCIF,
-    locationType: type,
-    label: label,
-    latitude: lat,
-    longitude: lng,
-    customerName: document.getElementById('gpsCustName').innerText || 'N/A'
-  };
+  const customerName = document.getElementById('gpsCustName').innerText || 'N/A';
   
   toggleLoader(true);
-  const action = window.gpsEditRow ? 'updateGpsRecord' : 'saveGpsRecord';
-  if (window.gpsEditRow) params.rowIndex = window.gpsEditRow;
   
   try {
-    await callBackend(action, params);
+    if (!window.db) throw new Error('Firestore not available');
     
+    let locs = gpsRecords.map(r => ({
+      locationType: r.LocationType,
+      label: r.CollateralName,
+      latitude: r.Latitude,
+      longitude: r.Longitude,
+      customerName: r.Customer_Name,
+      timestamp: r.TimeStamp instanceof Date ? r.TimeStamp.toISOString() : r.TimeStamp
+    }));
+    
+    const entry = {
+      locationType: type,
+      label: label,
+      latitude: lat,
+      longitude: lng,
+      customerName: customerName,
+      timestamp: new Date().toISOString()
+    };
+    
+    if (window.gpsEditRow !== null) {
+      locs[window.gpsEditRow] = entry;
+    } else {
+      locs.push(entry);
+    }
+    
+    await saveGpsLocationsToFirestore(locs);
+    
+    // Image upload still via GAS (GitHub storage)
     if (gpsCapturedImageData) {
-      const imageFileName = `${gpsCurrentCIF}_${type}.webp`;
-      await callBackend('uploadImage', {
-        cifId: gpsCurrentCIF,
-        imageData: gpsCapturedImageData,
-        fileName: imageFileName
-      });
+      try {
+        const imageFileName = `${gpsCurrentCIF}_${type}.webp`;
+        await callBackend('uploadImage', {
+          cifId: gpsCurrentCIF,
+          imageData: gpsCapturedImageData,
+          fileName: imageFileName
+        });
+      } catch(e) {
+        console.warn('Image upload failed, location saved:', e);
+      }
     }
     
     toggleLoader(false);
-    showToast('Field coordinate and image saved.', 'success');
+    showToast('Field coordinate saved to Firestore.', 'success');
     window.gpsEditRow = null;
     gpsCapturedImageData = null;
     document.getElementById('gpsImagePreview').classList.add('hidden');
@@ -251,6 +306,7 @@ async function submitGpsForm() {
     loadGpsRecords();
   } catch (e) {
     toggleLoader(false);
+    showToast('Save failed: ' + e.message, 'error');
   }
 }
 
@@ -296,7 +352,20 @@ async function searchGpsCustomer() {
   const q = document.getElementById('gpsManualSearchInp').value.trim().toUpperCase();
   if (!q) { document.getElementById('gpsManualResults').innerHTML = ''; return; }
   
-  const list = await crmDb.getAll('customers');
+  let list = [];
+  if (window.db) {
+    try {
+      const snapshot = await window.db.collection('customers').get();
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        list.push({ id: d.cifId, name: d.name });
+      });
+    } catch(e) {}
+  }
+  if (list.length === 0) {
+    list = await crmDb.getAll('customers');
+  }
+  
   const filtered = list.filter(c => c.name.toUpperCase().includes(q) || c.id.includes(q)).slice(0, 5);
   
   document.getElementById('gpsManualResults').innerHTML = filtered.map(c => `

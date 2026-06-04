@@ -1074,6 +1074,9 @@
     <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
       <i class="material-icons-round">light_mode</i>
     </div>
+    <div class="theme-toggle-btn admin-only" onclick="openAdminPage()" title="Admin Panel" style="font-size:18px;">
+      <i class="material-icons-round">settings</i>
+    </div>
     <button class="back-btn" onclick="goBackToMain()"><i class="material-icons-round">arrow_back</i> Return to Search</button>
   </div>
 </div>
@@ -1081,7 +1084,7 @@
 <!-- Tab Slider -->
 <div class="tab-slider-container">
   <div id="tab-calendar" class="tab-slider-btn active" onclick="switchDashboardTab('calendar')">Commitment Calendar</div>
-  <div id="tab-analytics" class="tab-slider-btn" onclick="switchDashboardTab('analytics')">Analytics Dashboard</div>
+  <div id="tab-analytics" class="tab-slider-btn admin-only" onclick="switchDashboardTab('analytics')">Analytics Dashboard</div>
 </div>
 
 <!-- Pane Calendar Tab -->
@@ -1360,7 +1363,7 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-  const API_BASE = 'https://script.google.com/macros/s/AKfycbxqd5HkGGf7VT2-SlOsgb6VpNNbAUdMTbjZu6kOQyasNNerd9pzKhCQ5QE7RDd5o4_z3A/exec';
+  const API_BASE = 'https://script.google.com/macros/s/AKfycbyZRXelgj4fQqZMdWUnK2FW7dP9-n-QpzhLiR02OgDd_dqgCWzKlabRooV6w9-EIw68/exec';
   
   // State
   let allMetrics = [];
@@ -1382,6 +1385,10 @@
   const fAmt = (n) => '₹ ' + (Math.abs(n) <= 0.0001 ? "0.00" : parseFloat(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}));
 
   function switchDashboardTab(tab) {
+    // Viewer restricted to calendar tab only
+    if (tab === 'analytics' && window.userRole !== 'admin') {
+      tab = 'calendar';
+    }
     document.getElementById('pane-analytics').classList.toggle('hidden', tab !== 'analytics');
     document.getElementById('pane-calendar').classList.toggle('hidden', tab !== 'calendar');
     document.getElementById('tab-analytics').classList.toggle('active', tab === 'analytics');
@@ -1437,6 +1444,10 @@
     window.location.href = 'index.html';
   }
 
+  function openAdminPage() {
+    window.location.href = 'Admin.html';
+  }
+
   function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -1486,6 +1497,43 @@
     initTheme();
     toggleLoader(true);
     
+    // Apply role-based UI from stored role
+    window.userRole = localStorage.getItem('crm_user_role') || 'viewer';
+    if (window.userRole !== 'admin') {
+      document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+      // Viewer: force calendar tab, disable analytics access
+      switchDashboardTab('calendar');
+    }
+    
+    // Initialize Firebase from cached config for Firestore access
+    const cachedConfig = localStorage.getItem('crm_fb_config');
+    if (cachedConfig && typeof firebase !== 'undefined') {
+      try {
+        const config = JSON.parse(cachedConfig);
+        if (firebase.apps.length === 0 && config.apiKey) {
+          firebase.initializeApp(config);
+        }
+        if (firebase.apps.length > 0) {
+          window.db = firebase.firestore();
+          try { window.db.settings({ persistence: true }); } catch(e) {}
+        }
+      } catch(e) { console.warn('Firebase init error:', e); }
+    }
+    
+    // Re-fetch role from Firestore in background (may be stale from cache)
+    try {
+      const cachedAuth = JSON.parse(localStorage.getItem('crm_auth_user') || '{}');
+      if (cachedAuth.uid && window.db) {
+        window.db.collection('roles').doc(cachedAuth.uid).get().then(doc => {
+          if (doc.exists) {
+            window.userRole = doc.data().role || 'viewer';
+            localStorage.setItem('crm_user_role', window.userRole);
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', window.userRole !== 'admin'));
+          }
+        }).catch(() => {});
+      }
+    } catch(e) {}
+    
     // Wire filter clicks
     document.querySelectorAll('.rel-chip').forEach(chip => {
       chip.addEventListener('click', () => {
@@ -1518,27 +1566,37 @@
       });
     });
     
-    // Fetch full ledger dataset to compile complete interactive charts
-    try {
-      console.log('Fetching loadFullData...');
-      const full = await callBackend('loadFullData');
-      console.log('loadFullData response type:', typeof full, 'has allMetrics:', full ? 'allMetrics' in full : 'N/A');
-      if (full && full.allMetrics && full.allMetrics.length > 0) {
-        allMetrics = full.allMetrics;
-        populateRmChips();
-        compileKpiSummary();
-        applyLocalFilters();
-        renderSummaryTables();
-        showToast('Ledger details synchronized.');
-      } else {
-        console.warn('loadFullData returned no allMetrics', full);
-        document.getElementById('tableBody').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--theme-text-muted);">No data available. Check the Data sheet.</td></tr>';
+    // Initialize Firestore
+    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+      window.db = window.db || firebase.firestore();
+      try { window.db.settings({ persistence: true }); } catch(e) {}
+    }
+
+    // Fetch data from Firestore
+    if (window.db) {
+      try {
+        console.log('Reading from Firestore...');
+        const snapshot = await window.db.collection('customers').get();
+        if (!snapshot.empty) {
+          allMetrics = [];
+          snapshot.forEach(doc => { allMetrics.push(doc.data()); });
+          populateRmChips();
+          compileKpiSummary();
+          applyLocalFilters();
+          renderSummaryTables();
+          showToast('Ledger details synchronized.');
+        } else {
+          document.getElementById('tableBody').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--theme-text-muted);">No data available.</td></tr>';
+        }
+      } catch(err) {
+        console.error(err);
+        document.getElementById('tableBody').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--theme-text-muted);">Could not connect to Firestore.</td></tr>';
+      } finally {
+        toggleLoader(false);
       }
-    } catch(err) {
-      console.error(err);
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--theme-text-muted);">Could not connect. Please deploy a new version of the script.</td></tr>';
-    } finally {
+    } else {
       toggleLoader(false);
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--theme-text-muted);">Firestore not initialized. Please log in via the main app.</td></tr>';
     }
     initCalendar();
   };
@@ -1903,8 +1961,27 @@
     
     toggleLoader(true);
     try {
-      const res = await callBackend('getCommitments', { date: selectedDate });
-      calendarCommitments = res?.commitments || [];
+      if (window.db) {
+        const snapshot = await window.db.collection('commitments')
+          .where('date', '==', selectedDate)
+          .orderBy('timestamp', 'asc')
+          .get();
+        calendarCommitments = [];
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          calendarCommitments.push({
+            rowIndex: doc.id,
+            cifId: d.cifId,
+            customerName: d.customerName,
+            date: d.date,
+            remarks: d.remarks,
+            timestamp: d.timestamp ? d.timestamp.toDate() : null
+          });
+        });
+      } else {
+        calendarCommitments = [];
+        showToast('Firestore unavailable. Please log in via the main app.', 'warning');
+      }
       renderCalendarTable();
     } catch (e) {
       console.error('Failed to fetch commitments', e);
@@ -1931,6 +2008,7 @@
       return;
     }
     
+    const isAdmin = window.userRole === 'admin';
     let tableHtml = '';
     let cardsHtml = '';
     calendarCommitments.forEach((com, idx) => {
@@ -1960,12 +2038,13 @@
               <button class="action-btn follow-up" style="padding: 6px 10px; font-size: 12px; border-radius: var(--radius-xs); border: none;" onclick="openCalendarFollowUpModal('${com.cifId}', '${safeName}', '${safeRemarks}')" title="Follow Up">
                 <i class="material-icons-round" style="font-size: 14px; vertical-align: middle;">phone</i><span class="btn-label"> Follow Up</span>
               </button>
+              ${isAdmin ? `
               <button class="action-btn" style="padding: 6px 10px; font-size: 12px; border-radius: var(--radius-xs); border: 1px solid var(--theme-border); background: var(--theme-surface-solid); color: var(--theme-text-primary);" onclick="editCalendarCommitment(${com.rowIndex}, '${com.cifId}', '${safeName}', '${com.date}', '${safeRemarks}')" title="Edit">
                 <i class="material-icons-round" style="font-size: 14px; vertical-align: middle;">edit</i><span class="btn-label"> Edit</span>
               </button>
               <button class="action-btn" style="padding: 6px 10px; font-size: 12px; border-radius: var(--radius-xs); border: none; background: var(--danger); color: white;" onclick="deleteCalendarCommitment(${com.rowIndex})" title="Delete">
                 <i class="material-icons-round" style="font-size: 14px; vertical-align: middle;">delete</i><span class="btn-label"> Delete</span>
-              </button>
+              </button>` : ''}
             </div>
           </td>
         </tr>
@@ -1989,12 +2068,13 @@
             <button class="action-btn follow-up" style="padding: 8px; border-radius: var(--radius-xs); border: none;" onclick="openCalendarFollowUpModal('${com.cifId}', '${safeName}', '${safeRemarks}')" title="Follow Up">
               <i class="material-icons-round" style="font-size: 18px; vertical-align: middle;">phone</i>
             </button>
+            ${isAdmin ? `
             <button class="action-btn" style="padding: 8px; border-radius: var(--radius-xs); border: 1px solid var(--theme-border); background: var(--theme-surface-solid); color: var(--theme-text-primary);" onclick="editCalendarCommitment(${com.rowIndex}, '${com.cifId}', '${safeName}', '${com.date}', '${safeRemarks}')" title="Edit">
               <i class="material-icons-round" style="font-size: 18px; vertical-align: middle;">edit</i>
             </button>
             <button class="action-btn" style="padding: 8px; border-radius: var(--radius-xs); border: none; background: var(--danger); color: white;" onclick="deleteCalendarCommitment(${com.rowIndex})" title="Delete">
               <i class="material-icons-round" style="font-size: 18px; vertical-align: middle;">delete</i>
-            </button>
+            </button>` : ''}
           </div>
         </div>
       `;
@@ -2112,20 +2192,31 @@
     
     toggleLoader(true);
     try {
-      const params = { cifId, customerName: name, date, remarks };
-      if (rowIndex) params.rowIndex = rowIndex;
-      
-      const res = await callBackend('saveCommitment', params);
-      if (res && res.success) {
-        showToast(rowIndex ? 'Commitment updated successfully.' : 'Commitment scheduled successfully.', 'success');
-        closeCalendarCommitmentModal();
-        fetchCalendarCommitments();
-      } else {
-        showToast('Save rejected: ' + (res?.error || 'Server error'), 'error');
+      if (!window.db) {
+        showToast('Firestore unavailable. Please log in via the main app.', 'error');
+        return;
       }
+      
+      const data = {
+        cifId,
+        customerName: name,
+        date,
+        remarks,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      if (rowIndex) {
+        await window.db.collection('commitments').doc(rowIndex).update(data);
+        showToast('Commitment updated successfully.', 'success');
+      } else {
+        await window.db.collection('commitments').add(data);
+        showToast('Commitment scheduled successfully.', 'success');
+      }
+      closeCalendarCommitmentModal();
+      fetchCalendarCommitments();
     } catch (e) {
       console.error(e);
-      showToast('Failed to save commitment to server.', 'error');
+      showToast('Failed to save commitment: ' + e.message, 'error');
     } finally {
       toggleLoader(false);
     }
@@ -2136,16 +2227,16 @@
     
     toggleLoader(true);
     try {
-      const res = await callBackend('deleteCommitment', { rowIndex });
-      if (res && res.success) {
-        showToast('Commitment deleted successfully.', 'success');
-        fetchCalendarCommitments();
-      } else {
-        showToast('Delete rejected: ' + (res?.error || 'Server error'), 'error');
+      if (!window.db) {
+        showToast('Firestore unavailable.', 'error');
+        return;
       }
+      await window.db.collection('commitments').doc(rowIndex).delete();
+      showToast('Commitment deleted successfully.', 'success');
+      fetchCalendarCommitments();
     } catch (e) {
       console.error(e);
-      showToast('Failed to delete commitment from server.', 'error');
+      showToast('Failed to delete commitment: ' + e.message, 'error');
     } finally {
       toggleLoader(false);
     }
@@ -2167,7 +2258,16 @@
     try { google.script.host.scrollTo(0, 0); } catch(e) {}
     
     try {
-      const c = await callBackend('extraDetails', { cifId });
+      let c = null;
+      if (window.db) {
+        try {
+          const doc = await window.db.collection('customerInfo').doc(cifId).get();
+          if (doc.exists) c = doc.data();
+        } catch(e) {}
+      }
+      if (!c) {
+        c = await callBackend('extraDetails', { cifId });
+      }
       if (!c || (!c.Contact_No && !c.Additional_Contact_Number)) {
         listContainer.innerHTML = '<div style="color:var(--theme-text-muted); text-align:center; padding:20px;">No contacts listed for this customer.</div>';
         return;

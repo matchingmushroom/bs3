@@ -1,120 +1,728 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="light">
 <head>
-  <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>Admin | Behind Schedule</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-functions-compat.js"></script>
 
   <style>
+    :root {
+      --font-sans: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --radius-xs: 8px;
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+      --radius-full: 9999px;
+      --primary-h: 220; --primary-s: 60%; --primary-l: 22%;
+      --accent-h: 42; --accent-s: 100%; --accent-l: 52%;
+      --danger-h: 350; --danger-s: 82%; --danger-l: 52%;
+      --success-h: 156; --success-s: 72%; --success-l: 38%;
+    }
+
+    :root, html[data-theme="light"] {
+      --bg-gradient: linear-gradient(145deg, #F1F5F9 0%, #E3E9F2 50%, #F6F8FB 100%);
+      --surface-glass: rgba(255,255,255,0.55);
+      --surface-solid: #FFFFFF;
+      --text-primary: #0B1426;
+      --text-secondary: #2E3A52;
+      --text-muted: #6B7A95;
+      --border-default: rgba(0,0,0,0.09);
+      --border-subtle: rgba(0,0,0,0.06);
+      --primary: hsl(var(--primary-h),var(--primary-s),var(--primary-l));
+      --primary-light: hsl(var(--primary-h),var(--primary-s),calc(var(--primary-l)+14%));
+      --accent-gold: hsl(var(--accent-h),var(--accent-s),var(--accent-l));
+      --danger: hsl(var(--danger-h),var(--danger-s),var(--danger-l));
+      --success: hsl(var(--success-h),var(--success-s),var(--success-l));
+      --shadow-sm: 0 4px 12px rgba(0,0,0,0.045);
+      --shadow-md: 0 8px 28px rgba(0,0,0,0.06);
+      --table-header: rgba(241,245,249,0.85);
+      --table-row-alt: rgba(248,250,252,0.5);
+      --table-border: #E2E8F0;
+    }
+
+    html[data-theme="dark"] {
+      --bg-gradient: linear-gradient(135deg, #0A0F1D 0%, #060A14 100%);
+      --surface-glass: rgba(15,23,42,0.55);
+      --surface-solid: #0F172A;
+      --text-primary: #F8FAF6;
+      --text-secondary: #CBD5E1;
+      --text-muted: #94A3B8;
+      --border-default: rgba(255,255,255,0.08);
+      --border-subtle: rgba(255,255,255,0.04);
+      --primary: hsl(var(--primary-h),calc(var(--primary-s)+15%),calc(var(--primary-l)+26%));
+      --primary-light: hsl(var(--primary-h),calc(var(--primary-s)+15%),calc(var(--primary-l)+38%));
+      --accent-gold: hsl(var(--accent-h),var(--accent-s),var(--accent-l));
+      --danger: #F43F5E;
+      --success: #10B981;
+      --shadow-sm: 0 4px 12px rgba(0,0,0,0.25);
+      --shadow-md: 0 12px 36px rgba(0,0,0,0.4);
+      --table-header: rgba(30,41,59,0.8);
+      --table-row-alt: rgba(15,23,42,0.3);
+      --table-border: #1E293B;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
     body {
-      font-family: 'Inter', sans-serif;
-      background: #f8fafc;
-      margin: 0;
-      padding: 16px;
+      font-family: var(--font-sans);
+      background: var(--bg-gradient);
+      margin: 0; padding: 24px;
+      color: var(--text-primary);
+      min-height: 100vh;
+      transition: all 0.25s ease;
+    }
+    .hidden { display: none !important; }
+
+    /* Header */
+    .admin-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+    }
+    .admin-header-left {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .admin-header h1 {
+      font-size: 26px; font-weight: 800;
+      color: var(--primary); margin: 0;
+      font-family: 'Plus Jakarta Sans', var(--font-sans);
+      letter-spacing: -0.6px;
+    }
+    .header-controls {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .icon-btn {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: var(--surface-solid);
+      border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--primary);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s ease;
+    }
+    .icon-btn:hover {
+      background: var(--primary); color: white; transform: translateY(-2px);
+    }
+    .back-btn {
+      background: var(--surface-solid);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-full);
+      padding: 10px 20px;
+      font-weight: 700; font-size: 13.5px;
+      color: var(--primary); cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s ease;
+    }
+    .back-btn:hover {
+      background: var(--primary); color: white; transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
 
-    .topbar {
-      margin-bottom: 15px;
+    /* Tab Slider */
+    .tab-slider-container {
+      display: flex; background: rgba(0,0,0,0.04);
+      padding: 4px; border-radius: var(--radius-full);
+      max-width: 480px; margin: 0 auto 28px;
+      border: 1px solid var(--border-default);
+    }
+    html[data-theme="dark"] .tab-slider-container {
+      background: rgba(255,255,255,0.04);
+    }
+    .tab-slider-btn {
+      flex: 1; text-align: center; padding: 12px;
+      font-size: 14px; font-weight: 700;
+      border-radius: var(--radius-full);
+      color: var(--text-secondary); cursor: pointer;
+      transition: all 0.25s ease;
+      border: none; background: transparent;
+    }
+    .tab-slider-btn.active {
+      color: var(--primary);
+      background: var(--surface-solid);
+      box-shadow: var(--shadow-sm);
     }
 
-    .btn {
-      background: #4f46e5;
-      color: white;
-      padding: 10px 16px;
-      border-radius: 20px;
-      text-decoration: none;
-      font-weight: 600;
+    /* Glass Card */
+    .glass-card {
+      background: var(--surface-glass);
+      border: 1px solid var(--border-default);
+      backdrop-filter: blur(28px) saturate(1.4);
+      -webkit-backdrop-filter: blur(28px) saturate(1.4);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 20px;
     }
 
-    .search {
+    .filter-label {
+      font-weight: 700; font-size: 11px;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 10px; display: block;
+    }
+
+    .search-input-wrapper {
+      position: relative; width: 100%;
+    }
+    .search-input-wrapper i {
+      position: absolute; left: 16px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted); font-size: 20px;
+    }
+    .search-input {
       width: 100%;
-      padding: 12px;
-      border-radius: 30px;
-      border: 1px solid #ccc;
-      margin-bottom: 15px;
+      padding: 12px 16px 12px 46px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-default);
+      background: var(--surface-solid);
+      font-size: 14px; font-weight: 600;
+      color: var(--text-primary);
+      transition: all 0.25s ease;
+    }
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(26,59,92,0.1);
     }
 
-    .card {
-      background: white;
-      padding: 14px;
-      border-radius: 16px;
-      margin-bottom: 10px;
-      border: 1px solid #e2e8f0;
+    /* Customer Results Grid */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .customer-card {
+      background: var(--surface-solid);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .customer-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .card-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+    }
+    .card-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(26,59,92,0.08);
+      color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 14px; flex-shrink: 0;
+    }
+    .card-name {
+      font-weight: 700; font-size: 14px; color: var(--text-primary); margin: 0;
+    }
+    .card-cif {
+      font-size: 11px; color: var(--text-muted);
+    }
+    .card-detail {
+      font-size: 12px; color: var(--text-secondary); margin-bottom: 3px;
     }
 
-    .name {
-      font-weight: 700;
-      margin-bottom: 5px;
+    /* User Management */
+    .create-user-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .create-user-form .full-width {
+      grid-column: 1 / -1;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px; font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-default);
+      font-family: inherit; font-size: 14px;
+      background: var(--surface-solid);
+      color: var(--text-primary);
+      transition: all 0.25s ease;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,59,92,0.1);
     }
 
-    .phone a {
-      color: #4f46e5;
-      text-decoration: none;
-      font-weight: 600;
+    .btn-premium {
+      padding: 14px 24px;
+      font-size: 14px; font-weight: 700;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: var(--shadow-sm);
+      display: inline-flex;
+      align-items: center; gap: 8px;
+    }
+    .btn-premium:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .btn-premium.btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+    }
+    .btn-premium.btn-outline:hover {
+      background: rgba(0,0,0,0.03);
+    }
+    .btn-premium.btn-danger {
+      background: var(--danger);
+    }
+    .btn-premium.btn-danger:hover {
+      background: hsl(var(--danger-h), var(--danger-s), calc(var(--danger-l) - 8%));
+    }
+
+    .section-title {
+      font-family: 'Plus Jakarta Sans', var(--font-sans);
+      font-size: 18px; font-weight: 800;
+      color: var(--primary);
+      margin: 24px 0 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Users Table */
+    .table-wrapper {
+      width: 100%; overflow-x: auto;
+      border-radius: var(--radius-lg);
+      background: var(--surface-glass);
+      border: 1px solid var(--border-default);
+      box-shadow: var(--shadow-sm);
+    }
+    table {
+      border-collapse: collapse;
+      font-size: 13px; width: 100%;
+      min-width: 500px;
+    }
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--table-border);
+    }
+    th {
+      background: var(--table-header);
+      font-weight: 700; font-size: 11px;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+    td { color: var(--text-primary); font-weight: 500; }
+    tr:nth-child(even) td { background: var(--table-row-alt); }
+
+    .badge-role {
+      display: inline-block;
+      padding: 3px 10px;
+      font-size: 11px; font-weight: 700;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+    }
+    .badge-admin { background: rgba(26,59,92,0.12); color: var(--primary); }
+    .badge-viewer { background: rgba(245,158,11,0.12); color: #B8860E; }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px;
+      color: var(--text-muted); font-size: 14px;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed; top: 24px; right: 24px;
+      z-index: 2000; max-width: 360px; width: 100%;
+      display: flex; flex-direction: column; gap: 10px;
+      pointer-events: none;
+    }
+    .toast-card {
+      pointer-events: auto;
+      background: var(--surface-solid);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-xs);
+      box-shadow: 0 20px 40px -10px rgba(0,0,0,0.12);
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 10px;
+      animation: slideIn 0.3s ease both;
+      cursor: pointer;
+    }
+    .toast-card.toast-success { border-left: 4px solid #10B981; }
+    .toast-card.toast-error { border-left: 4px solid #F43F5E; }
+    .toast-card.toast-warning { border-left: 4px solid #F59E0B; }
+    .toast-card.toast-info { border-left: 4px solid var(--primary); }
+    .toast-msg { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+    @keyframes slideIn {
+      from { transform: translateX(120%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 16px; }
+      .create-user-form { grid-template-columns: 1fr; }
+      .results-grid { grid-template-columns: 1fr; }
+      .admin-header h1 { font-size: 22px; }
     }
   </style>
 </head>
-
 <body>
 
-<div class="topbar">
-  <a href="?page=index" class="btn">← Back</a>
+<div class="admin-header">
+  <div class="admin-header-left">
+    <i class="material-icons-round" style="font-size:32px; color:var(--accent-gold);">admin_panel_settings</i>
+    <h1>Admin Panel</h1>
+  </div>
+  <div class="header-controls">
+    <div class="icon-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+      <i class="material-icons-round" id="themeIcon">light_mode</i>
+    </div>
+    <button class="back-btn" onclick="goBack()"><i class="material-icons-round">arrow_back</i> Back to Dashboard</button>
+  </div>
 </div>
 
-<input type="text" id="search" class="search" placeholder="Search customer...">
+<!-- Tab Slider -->
+<div class="tab-slider-container">
+  <div id="tab-customers" class="tab-slider-btn active" onclick="switchTab('customers')">Customers</div>
+  <div id="tab-users" class="tab-slider-btn" onclick="switchTab('users')">User Management</div>
+</div>
 
-<div id="list"></div>
+<!-- Pane: Customers -->
+<div id="pane-customers">
+  <div class="glass-card">
+    <span class="filter-label">Search Customer</span>
+    <div class="search-input-wrapper">
+      <i class="material-icons-round">search</i>
+      <input type="text" id="customerSearch" class="search-input" placeholder="Search by name, CIF, or phone..." oninput="onSearchInput()">
+    </div>
+  </div>
+  <div class="results-grid" id="customerResults"></div>
+</div>
+
+<!-- Pane: User Management -->
+<div id="pane-users" class="hidden">
+  <div class="glass-card">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+      <i class="material-icons-round" style="color:var(--accent-gold);">person_add</i>
+      <span style="font-family:'Plus Jakarta Sans',var(--font-sans); font-size:18px; font-weight:800; color:var(--primary);">Create New User</span>
+    </div>
+    <div class="create-user-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="newUserEmail" placeholder="user@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="newUserPassword" placeholder="Min 6 characters">
+      </div>
+      <div class="form-group">
+        <label>Display Name</label>
+        <input type="text" id="newUserDisplayName" placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="newUserRole">
+          <option value="viewer">Viewer</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="full-width" style="display:flex; gap:12px;">
+        <button class="btn-premium" onclick="createUser()" style="flex:1;">
+          <i class="material-icons-round">person_add</i> Create User
+        </button>
+        <button class="btn-premium btn-outline" onclick="clearCreateForm()" style="flex:0.4;">
+          <i class="material-icons-round">clear</i> Clear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; gap:8px; margin:24px 0 16px;">
+    <i class="material-icons-round" style="color:var(--accent-gold);">group</i>
+    <span style="font-family:'Plus Jakarta Sans',var(--font-sans); font-size:18px; font-weight:800; color:var(--primary);">All Users</span>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Created</th>
+          <th style="text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody">
+        <tr><td colspan="5" class="empty-state">Loading users...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
-let allData = [];
+  // ==========================================
+  // FIREBASE INIT
+  // ==========================================
+  const firebaseConfig = {
+    apiKey: 'AIzaSyDRInOFt55sjvVvsYFeMbqKlXSeAZjKBxk',
+    projectId: 'behind-schedule3',
+    authDomain: 'behind-schedule3.firebaseapp.com'
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+  const functions = firebase.functions();
 
-function render(data) {
-  const container = document.getElementById("list");
-  container.innerHTML = "";
+  let allCustomers = [];
+  let allUsers = [];
+  let currentUserRole = null;
 
-  data.forEach(c => {
-    container.innerHTML += `
-      <div class="card">
-        <div class="name">${c.CUSTOMER_NAME}</div>
-        <div>CIF: ${c.CIF_ID}</div>
-        <div>Loan: ${c.OUTSTANDING_LOAN}</div>
-        <div>Group: ${c.CUSTOMER_GROUP}</div>
-
-        <div class="phone">
-          📞 <a href="tel:${c.Contact_No}">${c.Contact_No}</a>
-        </div>
-
-        <div class="phone">
-          📞 <a href="tel:${c.Additional_Contact_Number}">
-            ${c.Additional_Contact_Number || ''}
-          </a>
-        </div>
-      </div>
-    `;
+  // ==========================================
+  // AUTH GUARD
+  // ==========================================
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      window.location.href = 'index.html';
+      return;
+    }
+    try {
+      const roleDoc = await db.collection('roles').doc(user.uid).get();
+      if (!roleDoc.exists || roleDoc.data().role !== 'admin') {
+        document.body.innerHTML = `
+          <div style="display:flex; align-items:center; justify-content:center; min-height:80vh; flex-direction:column; gap:16px;">
+            <i class="material-icons-round" style="font-size:64px; color:var(--danger);">lock</i>
+            <h2 style="color:var(--text-primary); margin:0;">Access Denied</h2>
+            <p style="color:var(--text-muted);">Only administrators can access this page.</p>
+            <button class="btn-premium" onclick="window.location.href='Dashboard.html'">Go to Dashboard</button>
+          </div>`;
+        return;
+      }
+      currentUserRole = 'admin';
+      initPage();
+    } catch (e) {
+      showToast('Failed to verify role: ' + e.message, 'error');
+    }
   });
-}
 
-document.getElementById("search").oninput = function() {
-  const val = this.value.toLowerCase();
+  // ==========================================
+  // THEME
+  // ==========================================
+  function toggleTheme() {
+    const curr = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = curr === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('crm_theme', next);
+    document.getElementById('themeIcon').innerText = next === 'light' ? 'dark_mode' : 'light_mode';
+  }
+  (function initTheme() {
+    const saved = localStorage.getItem('crm_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('themeIcon').innerText = saved === 'light' ? 'dark_mode' : 'light_mode';
+  })();
 
-  const filtered = allData.filter(c =>
-    (c.CUSTOMER_NAME || "").toLowerCase().includes(val) ||
-    (c.CIF_ID || "").includes(val) ||
-    (c.Contact_No || "").includes(val)
-  );
+  function goBack() {
+    window.location.href = 'Dashboard.html';
+  }
 
-  render(filtered);
-};
+  // ==========================================
+  // TOAST
+  // ==========================================
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const card = document.createElement('div');
+    card.className = 'toast-card toast-' + type;
+    const icon = type === 'success' ? 'check_circle' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+    card.innerHTML = `<i class="material-icons-round" style="color:var(--${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'primary'});">${icon}</i><span class="toast-msg">${message}</span>`;
+    card.onclick = () => card.remove();
+    container.appendChild(card);
+    setTimeout(() => card.remove(), 4000);
+  }
 
-google.script.run
-  .withSuccessHandler(d => {
-    allData = d || [];
-    render(allData);
-  })
-  .withFailureHandler(err => {
-    document.body.innerHTML = "<h3>Error loading data</h3><pre>" + err + "</pre>";
-  })
-  .getCustomerInfoData();
+  // ==========================================
+  // TAB SWITCHING
+  // ==========================================
+  function switchTab(tab) {
+    document.getElementById('pane-customers').classList.toggle('hidden', tab !== 'customers');
+    document.getElementById('pane-users').classList.toggle('hidden', tab !== 'users');
+    document.getElementById('tab-customers').classList.toggle('active', tab === 'customers');
+    document.getElementById('tab-users').classList.toggle('active', tab === 'users');
+    if (tab === 'users') loadUsers();
+    if (tab === 'customers') renderCustomers();
+  }
+
+  // ==========================================
+  // INIT PAGE
+  // ==========================================
+  async function initPage() {
+    await loadCustomers();
+    loadUsers();
+  }
+
+  // ==========================================
+  // CUSTOMERS TAB
+  // ==========================================
+  async function loadCustomers() {
+    try {
+      const snapshot = await db.collection('customers').get();
+      allCustomers = [];
+      snapshot.forEach(doc => allCustomers.push(doc.data()));
+      renderCustomers();
+    } catch (e) {
+      showToast('Failed to load customers: ' + e.message, 'error');
+    }
+  }
+
+  function onSearchInput() {
+    renderCustomers();
+  }
+
+  function renderCustomers() {
+    const q = document.getElementById('customerSearch').value.trim().toUpperCase();
+    const container = document.getElementById('customerResults');
+
+    let list = allCustomers;
+    if (q) {
+      list = allCustomers.filter(c =>
+        (c.name || '').toUpperCase().includes(q) ||
+        (c.cifId || '').includes(q) ||
+        (c.relationship || '').toUpperCase().includes(q)
+      );
+    }
+
+    if (list.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">No customers found.</div>';
+      return;
+    }
+
+    container.innerHTML = list.map(c => {
+      const initial = (c.name || 'CS').substring(0, 2).toUpperCase();
+      return `
+        <div class="customer-card">
+          <div class="card-row">
+            <div class="card-avatar">${initial}</div>
+            <div style="flex:1; min-width:0;">
+              <div class="card-name">${c.name || 'N/A'}</div>
+              <div class="card-cif">CIF: ${c.cifId || 'N/A'}</div>
+            </div>
+          </div>
+          <div class="card-detail"><b>Relationship:</b> ${c.relationship || 'Branch'}</div>
+          <div class="card-detail"><b>RM:</b> ${c.assignedRm || 'Unassigned'}</div>
+          <div class="card-detail"><b>Group:</b> ${c.customerGroup || 'NO GROUP'}</div>
+          <div class="card-detail"><b>Category:</b> ${c.categoryActual || 'Pass'}</div>
+          <div class="card-detail"><b>Loan:</b> ₹ ${((c.outstandingLoan || 0) / 1e6).toFixed(2)} M</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ==========================================
+  // USER MANAGEMENT TAB
+  // ==========================================
+  async function loadUsers() {
+    try {
+      const snapshot = await db.collection('Users').orderBy('createdAt', 'desc').get();
+      allUsers = [];
+      snapshot.forEach(doc => allUsers.push(doc.data()));
+      renderUsers();
+    } catch (e) {
+      document.getElementById('usersTableBody').innerHTML =
+        '<tr><td colspan="5" class="empty-state">Failed to load users.</td></tr>';
+    }
+  }
+
+  function renderUsers() {
+    const tbody = document.getElementById('usersTableBody');
+    if (allUsers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No users found. Create one above.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = allUsers.map(u => `
+      <tr>
+        <td><b>${u.displayName || 'N/A'}</b></td>
+        <td>${u.email || 'N/A'}</td>
+        <td><span class="badge-role ${u.role === 'admin' ? 'badge-admin' : 'badge-viewer'}">${u.role || 'viewer'}</span></td>
+        <td style="font-size:12px; color:var(--text-muted);">${u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
+        <td style="text-align:center;">
+          <button class="btn-premium btn-danger" style="padding:6px 12px; font-size:12px;" onclick="deleteUser('${u.uid}')">
+            <i class="material-icons-round" style="font-size:14px;">delete</i> Delete
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function clearCreateForm() {
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserPassword').value = '';
+    document.getElementById('newUserDisplayName').value = '';
+    document.getElementById('newUserRole').value = 'viewer';
+  }
+
+  async function createUser() {
+    const email = document.getElementById('newUserEmail').value.trim();
+    const password = document.getElementById('newUserPassword').value.trim();
+    const displayName = document.getElementById('newUserDisplayName').value.trim();
+    const role = document.getElementById('newUserRole').value;
+
+    if (!email || !password) {
+      showToast('Email and password are required.', 'warning');
+      return;
+    }
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters.', 'warning');
+      return;
+    }
+
+    const createBtn = document.querySelector('.btn-premium');
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<i class="material-icons-round">hourglass_top</i> Creating...';
+
+    try {
+      const createUserFn = functions.httpsCallable('createUserWithRole');
+      const result = await createUserFn({ email, password, displayName, role });
+      showToast('User created successfully! Role: ' + result.data.role, 'success');
+      clearCreateForm();
+      loadUsers();
+    } catch (e) {
+      const msg = e.code === 'functions/internal'
+        ? (e.message || 'Server error')
+        : (e.message || 'Failed to create user');
+      showToast(msg, 'error');
+    } finally {
+      createBtn.disabled = false;
+      createBtn.innerHTML = '<i class="material-icons-round">person_add</i> Create User';
+    }
+  }
+
+  async function deleteUser(uid) {
+    if (!confirm('Permanently delete this user? This cannot be undone.')) return;
+    try {
+      const deleteUserFn = functions.httpsCallable('deleteUser');
+      await deleteUserFn({ uid });
+      showToast('User deleted successfully.', 'success');
+      loadUsers();
+    } catch (e) {
+      showToast(e.message || 'Failed to delete user', 'error');
+    }
+  }
 </script>
-
 </body>
 </html>

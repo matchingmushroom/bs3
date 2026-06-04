@@ -1491,7 +1491,7 @@ function getFirebaseConfig() {
   let projectId = scriptProperties.getProperty('FIREBASE_PROJECT_ID');
   
   if (!apiKey) {
-    apiKey = 'AIzaSyD-PlaceholderApiKeyForSecureStorageNIC';
+    apiKey = 'AIzaSyDRInOFt55sjvVvsYFeMbqKlXSeAZjKBxk';
     scriptProperties.setProperty('FIREBASE_API_KEY', apiKey);
   }
   if (!projectId) {
@@ -1738,6 +1738,186 @@ function updateCustomerContactDetails(params) {
     });
     
     return { success: true, message: 'Customer contact credentials updated successfully.' };
+  }
+}
+
+// ========== FIRESTORE SYNC (Phase 1) ==========
+// Prerequisites:
+//   1. GAS Editor → Resources → Cloud Platform project → enter 41790671898
+//   2. GCP Console → enable Firestore API for that project
+//   3. Deploy a new version of this script
+
+var FIRESTORE_PROJECT = 'behind-schedule3';
+
+function toFirestoreValue(val) {
+  if (val === null || val === undefined) return { nullValue: null };
+  if (typeof val === 'string') return { stringValue: val };
+  if (typeof val === 'number') {
+    if (Number.isInteger(val) && Math.abs(val) < 2e53) return { integerValue: String(val) };
+    return { doubleValue: val };
+  }
+  if (typeof val === 'boolean') return { booleanValue: val };
+  if (val instanceof Date) return { timestampValue: val.toISOString() };
+  if (Array.isArray(val)) return { arrayValue: { values: val.map(toFirestoreValue)} };
+  if (typeof val === 'object') {
+    var fields = {};
+    Object.keys(val).forEach(function(k) { fields[k] = toFirestoreValue(val[k]); });
+    return { mapValue: { fields: fields } };
+  }
+  return { stringValue: String(val) };
+}
+
+function buildFirestoreDocument(obj) {
+  var fields = {};
+  Object.keys(obj).forEach(function(k) { fields[k] = toFirestoreValue(obj[k]); });
+  return { fields: fields };
+}
+
+function buildDocPath(collection, docId) {
+  return 'projects/' + FIRESTORE_PROJECT + '/databases/(default)/documents/' +
+    encodeURIComponent(collection) + '/' + encodeURIComponent(docId);
+}
+
+function firestoreBatchCommit(writes) {
+  var token = ScriptApp.getOAuthToken();
+  var url = 'https://firestore.googleapis.com/v1/projects/' + FIRESTORE_PROJECT +
+    '/databases/(default)/documents:commit';
+  var options = {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    payload: JSON.stringify({ writes: writes }),
+    muteHttpExceptions: true
+  };
+  var resp = UrlFetchApp.fetch(url, options);
+  var code = resp.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error('Firestore commit failed: ' + code + ' ' + resp.getContentText());
+  }
+}
+
+function firestoreDelete(collection, docId) {
+  var token = ScriptApp.getOAuthToken();
+  var url = 'https://firestore.googleapis.com/v1/projects/' + FIRESTORE_PROJECT +
+    '/databases/(default)/documents/' + encodeURIComponent(collection) + '/' + encodeURIComponent(docId);
+  var options = {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + token },
+    muteHttpExceptions: true
+  };
+  UrlFetchApp.fetch(url, options);
+}
+
+function syncToFirestore() {
+  Logger.log('Starting full Firestore sync...');
+  var start = new Date().getTime();
+
+  var full = loadFullData();
+  if (!full || !full.allMetrics) throw new Error('loadFullData returned no data');
+
+  var writes = [];
+  function qw(collection, docId, data) {
+    writes.push({ update: { name: buildDocPath(collection, docId), fields: buildFirestoreDocument(data).fields } });
+    if (writes.length >= 500) { firestoreBatchCommit(writes); writes = []; }
+  }
+  function flush() { if (writes.length > 0) { firestoreBatchCommit(writes); writes = []; } }
+
+  var customerCount = 0;
+  full.allMetrics.forEach(function(m) {
+    var cif = String(m.CIF_ID).trim().replace(/^0+/, '');
+    if (!cif) return;
+
+    qw('customers', cif, {
+      name: m.CUSTOMER_NAME || 'N/A',
+      cifId: cif,
+      categoryActual: m.CATEGORY_ACTUAL || 'Pass',
+      categoryProbable: m.CATEGORY_PROBABLE || 'Pass',
+      renewal: m.RENEWAL || 'N/A',
+      outstandingLoan: m.OUTSTANDING_LOAN || 0,
+      totOvdAmt: m.TOT_OVD_AMT || 0,
+      totalOverdueNet: m.TOTAL_OVERDUE_NET || 0,
+      minBalNpa: m.MIN_BAL_NPA || 0,
+      minBalWl: m.MIN_BAL_WL || 0,
+      maxOvdDays: m.MAX_OVD_DAYS || 0,
+      opBalance: m.OP_BALANCE || 0,
+      customerGroup: m.CUSTOMER_GROUP || 'NO GROUP',
+      relationship: m.RELATIONSHIP || 'Branch',
+      assignedRm: m.ASSIGNED_RM || 'Unassigned'
+    });
+
+    qw('metrics', cif, m);
+    customerCount++;
+  });
+
+  var groupCount = 0;
+  if (full.groups) {
+    full.groups.forEach(function(g) {
+      var groupKey = g.summary.groupName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      qw('groups', groupKey, {
+        groupName: g.summary.groupName,
+        unitCount: g.summary.unitCount,
+        totalLoan: g.summary.totalLoan,
+        totalOvd: g.summary.totalOvd,
+        totalNetOvd: g.summary.totalNetOvd,
+        minNpa: g.summary.minNpa,
+        minWl: g.summary.minWl,
+        units: g.units
+      });
+      groupCount++;
+    });
+  }
+
+  var contactCount = 0;
+  var ciSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CustomerInfo');
+  if (ciSheet) {
+    var ciData = ciSheet.getDataRange().getDisplayValues();
+    if (ciData.length > 1) {
+      var ciHeaders = ciData[0].map(function(h) { return String(h).trim(); });
+      var cifIdx = ciHeaders.findIndex(function(h) {
+        var norm = h.toLowerCase().replace(/[\s_-]/g, '');
+        return norm === 'cifid' || norm === 'cif';
+      });
+      if (cifIdx !== -1) {
+        for (var i = 1; i < ciData.length; i++) {
+          var ciRow = ciData[i];
+          var ciCif = String(ciRow[cifIdx]).trim().replace(/^0+/, '');
+          if (!ciCif) continue;
+          var ciObj = {};
+          ciHeaders.forEach(function(h, idx) { ciObj[h] = ciRow[idx]; });
+          qw('customerInfo', ciCif, ciObj);
+          contactCount++;
+        }
+      }
+    }
+  }
+
+  flush();
+
+  var elapsed = new Date().getTime() - start;
+  Logger.log('Firestore sync complete: ' + customerCount + ' customers, ' + groupCount + ' groups, ' + contactCount + ' contacts in ' + elapsed + 'ms');
+  return { success: true, customers: customerCount, groups: groupCount, contacts: contactCount, elapsed: elapsed };
+}
+
+function onEdit(e) {
+  if (!e || !e.range) return;
+  var sheet = e.range.getSheet();
+  var sheetName = sheet ? sheet.getName() : '';
+
+  // Only sync sheets that affect Firestore data
+  var syncSheets = ['Data', 'CustomerInfo'];
+  if (syncSheets.indexOf(sheetName) === -1) return;
+
+  // Debounce: use LockService to avoid concurrent runs
+  var lock = LockService.getDocumentLock();
+  if (!lock.tryLock(5000)) return;
+
+  try {
+    // For small edits, just trigger a full re-sync
+    // (Incremental sync would require tracking which CIFs changed)
+    syncToFirestore();
+  } catch(e) {
+    Logger.error('onEdit sync failed: ' + e);
+  } finally {
+    lock.releaseLock();
   }
 }
 

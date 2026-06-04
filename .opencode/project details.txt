@@ -1,0 +1,39 @@
+In Track Valuation, do not show valuation until verified by Admin user. 
+
+Do not show Amount to user in return message in website.
+
+Verification message changed to:
+"The mentioned {valuationType} has been done by Balaji Technical Designing and Consultancy on request of {bfiName}, {bfiBranch}. It is an authentic BTDC valuation document."
+
+Before verifying, allow feature to open details ntered by staff while adding Valuation as popup window to review the details. and admin can verify the valuation
+
+Data loaded when app start are not correct in summary cards like Total Overdue, Net Overdue, Total Loan, NPA Saver, WL Saver, Renewal etc,  index.html pageand after 10-15 second correct data again refreshes. identify issue, and fix it.
+
+
+Currently using googlesheet as database. i want to migrate to firebase as my database. but i want to update the data in googlesheet and fresh data to be pulled from googlesheet manually by adminuser. 
+
+other all api to be used as google app script and other things remain same. 
+
+is it safe and befefical to transition to migrate to firebase to use multi user role.
+
+
+
+Data flow for writes — When an agent creates a commitment or GPS entry, should it go directly to Firestore (faster, simpler) or via GAS (admin audit trail)?
+
+=go directly to Firestore
+
+Sync trigger — Should the GAS sync run on every onEdit, or on a schedule (e.g., every 5 min)?
+
+=GAS sync run on every onEdit
+
+Roles needed — What roles do you need? (e.g., admin, agent, viewer)
+Firestore or Realtime Database — Firestore is better for structured data (your customer/account model), RTDB for real-time chat. Firestore is recommended here.
+=admin, viewer
+
+Budget — Firestore free tier: 1GB stored, 50K reads/day, 20K writes/day. Your usage looks well within free tier.
+=yes
+
+
+Firebase Project ID : behind-schedule3
+Firebase Project Number: 41790671898
+Firebase Web API Key: AIzaSyDRInOFt55sjvVvsYFeMbqKlXSeAZjKBxk

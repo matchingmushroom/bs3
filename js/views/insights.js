@@ -1,22 +1,28 @@
 async function loadInsights() {
-  toggleLoader(true);
-  try {
-    const res = await getCachedInsights(currentCIF, 'overdue', 'overdue');
-    if (res && res.rows) {
-      document.getElementById('body-daily').innerHTML = res.rows.map(r => `<tr><td style="font-weight:600;">${r.OVD_DATE}</td><td>${fAmt(r.TOT_OVD_AMT)}</td><td>${fAmt(r.I_OVD)}</td><td>${fAmt(r.P_OVD)}</td><td>${fAmt(r.PENAL_INT)}</td></tr>`).join('');
-      document.getElementById('foot-daily').innerHTML = `<tr><td>TOTAL</td><td>${fAmt(res.total.TOT_OVD_AMT)}</td><td>${fAmt(res.total.I_OVD)}</td><td>${fAmt(res.total.P_OVD)}</td><td>${fAmt(res.total.PENAL_INT)}</td></tr>`;
+  let data = null;
+  if (window.db) {
+    try {
+      const doc = await window.db.collection('insights').doc(currentCIF).get();
+      if (doc.exists) data = doc.data();
+    } catch(e) {
+      console.warn('Firestore insights read failed:', e);
     }
-    
-    const meta = await getCachedInsights(currentCIF, 'slicerOptions', 'slicerOptions');
-    if (meta && meta.years) {
-      slicerMeta = meta;
-      renderFilters(meta.years, meta.months);
-      applySlicer();
-    }
-    toggleLoader(false);
-  } catch(err) {
-    toggleLoader(false);
-    showToast("Failed to compile Insights.", 'error');
+  }
+  if (!data) {
+    try {
+      data = await getCachedInsights(currentCIF, 'overdue', 'overdue');
+    } catch(e) {}
+  }
+  
+  if (data && data.overdue && data.overdue.rows) {
+    document.getElementById('body-daily').innerHTML = data.overdue.rows.map(r => `<tr><td style="font-weight:600;">${r.OVD_DATE}</td><td>${fAmt(r.TOT_OVD_AMT)}</td><td>${fAmt(r.I_OVD)}</td><td>${fAmt(r.P_OVD)}</td><td>${fAmt(r.PENAL_INT)}</td></tr>`).join('');
+    document.getElementById('foot-daily').innerHTML = `<tr><td>TOTAL</td><td>${fAmt(data.overdue.total.TOT_OVD_AMT)}</td><td>${fAmt(data.overdue.total.I_OVD)}</td><td>${fAmt(data.overdue.total.P_OVD)}</td><td>${fAmt(data.overdue.total.PENAL_INT)}</td></tr>`;
+  }
+  
+  if (data && data.slicerYears) {
+    slicerMeta = { years: data.slicerYears, months: data.slicerMonths };
+    renderFilters(data.slicerYears, data.slicerMonths);
+    applySlicer();
   }
 }
 
