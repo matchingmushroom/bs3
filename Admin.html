@@ -11,7 +11,7 @@
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-functions-compat.js"></script>
+  <!-- No Cloud Functions — Spark plan compatible -->
 
   <style>
     :root {
@@ -489,7 +489,6 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
-  const functions = firebase.functions();
 
   let allCustomers = [];
   let allUsers = [];
@@ -696,16 +695,46 @@
     createBtn.innerHTML = '<i class="material-icons-round">hourglass_top</i> Creating...';
 
     try {
-      const createUserFn = functions.httpsCallable('createUserWithRole');
-      const result = await createUserFn({ email, password, displayName, role });
-      showToast('User created successfully! Role: ' + result.data.role, 'success');
+      // 1. Create auth user via Identity Toolkit REST API
+      const signUpRes = await fetch(
+        'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + firebaseConfig.apiKey,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, displayName, returnSecureToken: true })
+        }
+      );
+      const signUpData = await signUpRes.json();
+
+      if (signUpData.error) {
+        showToast(signUpData.error.message || 'Sign-up failed', 'error');
+        return;
+      }
+
+      const uid = signUpData.localId;
+
+      // 2. Write to Users collection
+      const now = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('Users').doc(uid).set({
+        uid,
+        email,
+        displayName: displayName || '',
+        role,
+        createdAt: now,
+        updatedAt: now
+      });
+
+      // 3. Write to roles collection
+      await db.collection('roles').doc(uid).set({
+        role,
+        updatedAt: now
+      }, { merge: true });
+
+      showToast('User created: ' + email + ' (' + role + ')', 'success');
       clearCreateForm();
       loadUsers();
     } catch (e) {
-      const msg = e.code === 'functions/internal'
-        ? (e.message || 'Server error')
-        : (e.message || 'Failed to create user');
-      showToast(msg, 'error');
+      showToast('Failed to create user: ' + e.message, 'error');
     } finally {
       createBtn.disabled = false;
       createBtn.innerHTML = '<i class="material-icons-round">person_add</i> Create User';
@@ -713,14 +742,15 @@
   }
 
   async function deleteUser(uid) {
-    if (!confirm('Permanently delete this user? This cannot be undone.')) return;
+    if (!confirm('Remove this user? Their auth account will remain but access is revoked.')) return;
     try {
-      const deleteUserFn = functions.httpsCallable('deleteUser');
-      await deleteUserFn({ uid });
-      showToast('User deleted successfully.', 'success');
+      // Remove Firestore docs — auth account stays (Spark limitation)
+      await db.collection('Users').doc(uid).delete();
+      await db.collection('roles').doc(uid).delete();
+      showToast('User access revoked (Firestore docs removed).', 'success');
       loadUsers();
     } catch (e) {
-      showToast(e.message || 'Failed to delete user', 'error');
+      showToast('Failed: ' + e.message, 'error');
     }
   }
 </script>

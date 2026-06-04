@@ -2008,7 +2008,6 @@
       return;
     }
     
-    const isAdmin = window.userRole === 'admin';
     let tableHtml = '';
     let cardsHtml = '';
     calendarCommitments.forEach((com, idx) => {
@@ -2038,13 +2037,12 @@
               <button class="action-btn follow-up" style="padding: 6px 10px; font-size: 12px; border-radius: var(--radius-xs); border: none;" onclick="openCalendarFollowUpModal('${com.cifId}', '${safeName}', '${safeRemarks}')" title="Follow Up">
                 <i class="material-icons-round" style="font-size: 14px; vertical-align: middle;">phone</i><span class="btn-label"> Follow Up</span>
               </button>
-              ${isAdmin ? `
               <button class="action-btn" style="padding: 6px 10px; font-size: 12px; border-radius: var(--radius-xs); border: 1px solid var(--theme-border); background: var(--theme-surface-solid); color: var(--theme-text-primary);" onclick="editCalendarCommitment(${com.rowIndex}, '${com.cifId}', '${safeName}', '${com.date}', '${safeRemarks}')" title="Edit">
                 <i class="material-icons-round" style="font-size: 14px; vertical-align: middle;">edit</i><span class="btn-label"> Edit</span>
               </button>
               <button class="action-btn" style="padding: 6px 10px; font-size: 12px; border-radius: var(--radius-xs); border: none; background: var(--danger); color: white;" onclick="deleteCalendarCommitment(${com.rowIndex})" title="Delete">
                 <i class="material-icons-round" style="font-size: 14px; vertical-align: middle;">delete</i><span class="btn-label"> Delete</span>
-              </button>` : ''}
+              </button>
             </div>
           </td>
         </tr>
@@ -2068,13 +2066,12 @@
             <button class="action-btn follow-up" style="padding: 8px; border-radius: var(--radius-xs); border: none;" onclick="openCalendarFollowUpModal('${com.cifId}', '${safeName}', '${safeRemarks}')" title="Follow Up">
               <i class="material-icons-round" style="font-size: 18px; vertical-align: middle;">phone</i>
             </button>
-            ${isAdmin ? `
             <button class="action-btn" style="padding: 8px; border-radius: var(--radius-xs); border: 1px solid var(--theme-border); background: var(--theme-surface-solid); color: var(--theme-text-primary);" onclick="editCalendarCommitment(${com.rowIndex}, '${com.cifId}', '${safeName}', '${com.date}', '${safeRemarks}')" title="Edit">
               <i class="material-icons-round" style="font-size: 18px; vertical-align: middle;">edit</i>
             </button>
             <button class="action-btn" style="padding: 8px; border-radius: var(--radius-xs); border: none; background: var(--danger); color: white;" onclick="deleteCalendarCommitment(${com.rowIndex})" title="Delete">
               <i class="material-icons-round" style="font-size: 18px; vertical-align: middle;">delete</i>
-            </button>` : ''}
+            </button>
           </div>
         </div>
       `;

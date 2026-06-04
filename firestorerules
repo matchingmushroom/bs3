@@ -4,73 +4,69 @@ service cloud.firestore {
 
     // ==========================================
     // HELPER FUNCTIONS
+    //
+    // Roles are read from the Firestore `roles/{uid}` document
+    // instead of custom claims, so no Admin SDK / Blaze plan needed.
     // ==========================================
     function isAuthenticated() {
       return request.auth != null;
     }
 
     function isAdmin() {
-      return isAuthenticated() && request.auth.token.role == 'admin';
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isViewer() {
-      return isAuthenticated() && request.auth.token.role == 'viewer';
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role == 'viewer';
     }
 
     function isAnyUser() {
       return isAdmin() || isViewer();
     }
 
-    // Admin: CRUD. Viewer: read only.
-    function allowAdminWrite() { return isAdmin(); }
-
     // ==========================================
-    // ANALYTICS DATA (Dashboard Analytics tab)
-    // Viewer read-only, admin CRUD.
-    // GAS sync uses REST API (bypasses rules),
-    // so restricting client write to admin is safe.
+    // ANALYTICS DATA — viewer read-only, admin CRUD
     // ==========================================
-
     match /customers/{cif} {
       allow read:   if isAnyUser();
-      allow create: if allowAdminWrite();
-      allow update: if allowAdminWrite();
-      allow delete: if allowAdminWrite();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /metrics/{cif} {
       allow read:   if isAnyUser();
-      allow create: if allowAdminWrite();
-      allow update: if allowAdminWrite();
-      allow delete: if allowAdminWrite();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /groups/{group} {
       allow read:   if isAnyUser();
-      allow create: if allowAdminWrite();
-      allow update: if allowAdminWrite();
-      allow delete: if allowAdminWrite();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /insights/{cif} {
       allow read:   if isAnyUser();
-      allow create: if allowAdminWrite();
-      allow update: if allowAdminWrite();
-      allow delete: if allowAdminWrite();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /customerInfo/{cif} {
       allow read:   if isAnyUser();
-      allow create: if allowAdminWrite();
-      allow update: if allowAdminWrite();
-      allow delete: if allowAdminWrite();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // ==========================================
-    // USER-FACING COLLECTIONS
-    // Viewer full CRUD (Commitment Calendar)
+    // USER-FACING COLLECTIONS — viewer full CRUD
     // ==========================================
-
     match /commitments/{doc} {
       allow read:   if isAnyUser();
       allow create: if isAnyUser();
@@ -78,7 +74,6 @@ service cloud.firestore {
       allow delete: if isAnyUser();
     }
 
-    // GPS entries — viewer full CRUD
     match /gpsEntries/{cif} {
       allow read:   if isAnyUser();
       allow create: if isAnyUser();
@@ -90,19 +85,18 @@ service cloud.firestore {
     // ADMIN-ONLY MANAGEMENT
     // ==========================================
 
-    // Roles — prevent viewer privilege escalation
+    // Roles — admin only write to prevent escalation
     match /roles/{userId} {
       allow read:   if isAnyUser();
-      allow write:  if allowAdminWrite();
+      allow write:  if isAdmin();
     }
 
-    // Users — admin creates via Identity Toolkit,
-    // then writes user doc. Viewer read-only.
+    // Users — admin CRUD
     match /Users/{uid} {
       allow read:   if isAnyUser();
-      allow create: if allowAdminWrite();
-      allow update: if allowAdminWrite();
-      allow delete: if allowAdminWrite();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }
