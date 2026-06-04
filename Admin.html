@@ -11,6 +11,8 @@
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script defer src="js/db.js"></script>
+  <script defer src="js/api.js"></script>
   <!-- No Cloud Functions — Spark plan compatible -->
 
   <style>
@@ -411,6 +413,9 @@
       <i class="material-icons-round">search</i>
       <input type="text" id="customerSearch" class="search-input" placeholder="Search by name, CIF, or phone..." oninput="onSearchInput()">
     </div>
+    <button class="btn-premium" id="syncBtn" onclick="syncAllFromSheet()" style="margin-top:12px; width:100%;">
+      <i class="material-icons-round">sync</i> Sync Fresh Data from Google Sheet
+    </button>
   </div>
   <div class="results-grid" id="customerResults"></div>
 </div>
@@ -573,6 +578,32 @@
   async function initPage() {
     await loadCustomers();
     loadUsers();
+  }
+
+  // ==========================================
+  // SYNC FROM GOOGLE SHEET
+  // ==========================================
+  async function syncAllFromSheet() {
+    if (!confirm('This will delete ALL analytics data (customers, metrics, groups, insights, customerInfo) and re-sync from the Google Sheet. Users and roles will be preserved. Continue?')) return;
+
+    const btn = document.getElementById('syncBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="material-icons-round">hourglass_top</i> Syncing...';
+
+    try {
+      const result = await callBackend('syncAll');
+      if (result && result.success) {
+        showToast('Sync complete: deleted ' + result.deleted + ' old docs, synced ' + (result.synced?.customers || 0) + ' customers.', 'success');
+        await loadCustomers();
+      } else {
+        showToast('Sync failed: ' + (result?.error || 'Unknown error'), 'error');
+      }
+    } catch (e) {
+      showToast('Sync error: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="material-icons-round">sync</i> Sync Fresh Data from Google Sheet';
+    }
   }
 
   // ==========================================
