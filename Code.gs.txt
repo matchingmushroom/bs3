@@ -1818,6 +1818,14 @@ function syncAll() {
   var wipeCollections = ['customers', 'metrics', 'groups', 'insights', 'customerInfo', 'commitments'];
 
   var deletedCount = 0;
+  var deletes = [];
+  function flushDeletes() {
+    if (deletes.length > 0) {
+      firestoreBatchCommit(deletes);
+      deletes = [];
+    }
+  }
+
   wipeCollections.forEach(function(coll) {
     var pageToken = '';
     do {
@@ -1830,22 +1838,20 @@ function syncAll() {
       var data = JSON.parse(resp.getContentText());
       if (data.documents) {
         data.documents.forEach(function(doc) {
-          UrlFetchApp.fetch('https://firestore.googleapis.com/v1/' + doc.name + '?allowMissing=true', {
-            method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + syncToken },
-            muteHttpExceptions: true
-          });
+          deletes.push({ delete: doc.name });
           deletedCount++;
+          if (deletes.length >= 500) flushDeletes();
         });
       }
       pageToken = data.nextPageToken || '';
     } while (pageToken);
   });
+  flushDeletes();
 
   var syncResult = syncToFirestore();
 
   var elapsed = new Date().getTime() - start;
-  Logger.log('syncAll complete: deleted ' + deletedCount + ' docs, synced ' + syncResult.customers + ' customers in ' + elapsed + 'ms');
+  Logger.log('syncAll complete: deleted ' + deletedCount + ' docs, synced ' + syncResult.customers + ' customers, ' + (syncResult.commitments || 0) + ' commitments in ' + elapsed + 'ms');
   return {
     success: true,
     deleted: deletedCount,
