@@ -1980,6 +1980,26 @@
           });
         });
         calendarCommitments.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        // If Firestore returned empty, try GAS fallback
+        if (calendarCommitments.length === 0 && typeof callBackend !== 'undefined') {
+          try {
+            const gasData = await callBackend('getCommitments', { date: selectedDate });
+            const gasList = gasData?.commitments || gasData;
+            if (gasList && gasList.length > 0) {
+              calendarCommitments = gasList.map((c, idx) => ({
+                rowIndex: c.rowIndex || 'gas_' + idx,
+                cifId: c.cifId || c.CIF_ID || '',
+                customerName: c.customerName || c.Customer_Name || '',
+                date: selectedDate,
+                remarks: c.remarks || c.Remarks || '',
+                timestamp: c.timestamp ? new Date(c.timestamp) : null
+              }));
+            }
+          } catch(gasErr) {
+            console.warn('GAS commitments fallback failed:', gasErr);
+          }
+        }
       } else {
         calendarCommitments = [];
         showToast('Firestore unavailable. Please log in via the main app.', 'warning');
