@@ -637,9 +637,14 @@
   // ==========================================
   async function loadUsers() {
     try {
-      const snapshot = await db.collection('Users').orderBy('createdAt', 'desc').get();
+      const snapshot = await db.collection('Users').get();
       allUsers = [];
       snapshot.forEach(doc => allUsers.push(doc.data()));
+      allUsers.sort((a, b) => {
+        const aTime = a.createdAt ? a.createdAt.seconds || 0 : 0;
+        const bTime = b.createdAt ? b.createdAt.seconds || 0 : 0;
+        return bTime - aTime;
+      });
       renderUsers();
     } catch (e) {
       document.getElementById('usersTableBody').innerHTML =
