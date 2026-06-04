@@ -1966,7 +1966,6 @@
       if (window.db) {
         const snapshot = await window.db.collection('commitments')
           .where('date', '==', selectedDate)
-          .orderBy('timestamp', 'asc')
           .get();
         calendarCommitments = [];
         snapshot.forEach(doc => {
@@ -1980,6 +1979,7 @@
             timestamp: d.timestamp ? d.timestamp.toDate() : null
           });
         });
+        calendarCommitments.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
       } else {
         calendarCommitments = [];
         showToast('Firestore unavailable. Please log in via the main app.', 'warning');
