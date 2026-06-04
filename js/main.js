@@ -27,6 +27,20 @@ async function loadCustomersFromFirestore() {
   return false;
 }
 
+async function loadCustomersFromGAS() {
+  if (!navigator.onLine) return false;
+  try {
+    const list = await callBackend('customers');
+    if (list && list.length > 0) {
+      customers = list.map(c => ({ id: c.id || c.cifId, name: c.name, metrics: c }));
+      return true;
+    }
+  } catch(e) {
+    console.warn('GAS customers fallback failed:', e);
+  }
+  return false;
+}
+
 async function loadInitialCachedLedgers() {
   const loaded = await loadCustomersFromFirestore();
   if (loaded && customers.length > 0) {
@@ -46,7 +60,6 @@ async function syncLedgerDataOnStart() {
   const loaded = await loadCustomersFromFirestore();
   if (loaded && customers.length > 0) {
     triggerFuzzySearch(document.getElementById('searchInp')?.value || '');
-    // Refresh detail/group views if currently open
     const activeView = document.querySelector('.view:not(.hidden)');
     if (activeView?.id === 'view-detail' && currentCIF) loadDetails();
     else if (activeView?.id === 'view-group') loadGroupDetails();
@@ -56,6 +69,12 @@ async function syncLedgerDataOnStart() {
   if (cachedList.length > 0) {
     customers = cachedList;
     triggerFuzzySearch(document.getElementById('searchInp')?.value || '');
+    return;
+  }
+  const gasLoaded = await loadCustomersFromGAS();
+  if (gasLoaded && customers.length > 0) {
+    triggerFuzzySearch('');
+    return;
   }
 }
 
