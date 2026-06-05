@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      margin: 0;
+      padding: 16px;
+    }
+
+    .topbar {
+      margin-bottom: 15px;
+    }
+
+    .btn {
+      background: #4f46e5;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .search {
+      width: 100%;
+      padding: 12px;
+      border-radius: 30px;
+      border: 1px solid #ccc;
+      margin-bottom: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 14px;
+      border-radius: 16px;
+      margin-bottom: 10px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .name {
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .phone a {
+      color: #4f46e5;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <a href="?page=index" class="btn">← Back</a>
+</div>
+
+<input type="text" id="search" class="search" placeholder="Search customer...">
+
+<div id="list"></div>
+
+<script>
+let allData = [];
+
+function render(data) {
+  const container = document.getElementById("list");
+  container.innerHTML = "";
+
+  data.forEach(c => {
+    container.innerHTML += `
+      <div class="card">
+        <div class="name">${c.CUSTOMER_NAME}</div>
+        <div>CIF: ${c.CIF_ID}</div>
+        <div>Loan: ${c.OUTSTANDING_LOAN}</div>
+        <div>Group: ${c.CUSTOMER_GROUP}</div>
+
+        <div class="phone">
+          📞 <a href="tel:${c.Contact_No}">${c.Contact_No}</a>
+        </div>
+
+        <div class="phone">
+          📞 <a href="tel:${c.Additional_Contact_Number}">
+            ${c.Additional_Contact_Number || ''}
+          </a>
+        </div>
+      </div>
+    `;
+  });
+}
+
+document.getElementById("search").oninput = function() {
+  const val = this.value.toLowerCase();
+
+  const filtered = allData.filter(c =>
+    (c.CUSTOMER_NAME || "").toLowerCase().includes(val) ||
+    (c.CIF_ID || "").includes(val) ||
+    (c.Contact_No || "").includes(val)
+  );
+
+  render(filtered);
+};
+
+google.script.run
+  .withSuccessHandler(d => {
+    allData = d || [];
+    render(allData);
+  })
+  .withFailureHandler(err => {
+    document.body.innerHTML = "<h3>Error loading data</h3><pre>" + err + "</pre>";
+  })
+  .getCustomerInfoData();
+</script>
+
+</body>
+</html>

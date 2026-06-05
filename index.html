@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>Behind Schedule</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#1A3B5C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  
+  <!-- Modern Google Fonts & Material Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  
+  <!-- Firebase compatibility SDKs for premium offline Auth -->
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Scripts (loaded in order) -->
+  <script defer src="js/db.js"></script>
+  <script defer src="js/api.js"></script>
+  <script defer src="js/ui.js"></script>
+  <script defer src="js/auth.js"></script>
+  <script defer src="js/views/group.js"></script>
+  <script defer src="js/views/insights.js"></script>
+  <script defer src="js/views/detail.js"></script>
+  <script defer src="js/views/gps.js"></script>
+  <script defer src="js/views/reminders.js"></script>
+  <script defer src="js/main.js"></script>
+</head>
+<body>
+
+<!-- Ambient glassmorphism glow orbs -->
+<div class="ambient-orbs"></div>
+
+
+<style>
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+</style>
+
+<!-- Offline banner -->
+<div id="offlineBanner" class="offline-alert-bar hidden">⚠️ Connection Lost. Operating Offline (Using Cached Data)</div>
+
+<!-- ==========================================
+     FIREBASE COMPATIBLE OFFLINE SECURE LOGIN
+     ========================================== -->
+<div id="view-login" class="content">
+  <div class="glass-card login-container">
+    <div class="login-logo">
+      <i class="material-icons-round">account_balance</i>
+    </div>
+    <h2 class="login-title">Behind Schedule</h2>
+    <p class="login-subtitle">Overdue Tracking Ledger</p>
+    
+    <div class="modal-body" style="padding:0;">
+      <label>Email Address</label>
+      <input type="email" id="loginEmail" placeholder="Enter login email...">
+      
+      <label>Password ID</label>
+      <input type="password" id="loginPassword" placeholder="Enter security passphrase...">
+      
+      <button class="btn-premium" style="width:100%; margin-top:24px;" onclick="performFirebaseAuthentication()">
+        <i class="material-icons-round">login</i> Sign In
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Main App Layout Wrapper -->
+<div id="app-wrapper" class="hidden">
+  <header>
+    <div class="header-left">
+      <i class="material-icons-round" style="color:var(--primary); font-size:28px;">account_balance</i>
+      <div class="app-title">Behind Schedule</div>
+    </div>
+    <div class="header-right">
+      <!-- Light/Dark toggle button -->
+      <div class="icon-only-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+        <i class="material-icons-round">light_mode</i>
+      </div>
+      <!-- Logout button -->
+      <div class="icon-only-btn" id="logout-btn" onclick="performLogout()" title="Logout User">
+        <i class="material-icons-round">logout</i>
+      </div>
+      <!-- Dashboard Icon -->
+      <div class="header-btn" onclick="openDashboard()" title="Open Dashboard">
+        <i class="material-icons-round">dashboard</i> Dashboard
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- 1. SEARCH VIEW -->
+    <div id="view-search" class="view">
+      <div class="hero-container">
+        <h1 class="hero-title">Track Overdue Accounts</h1>
+        <p class="hero-subtitle">Customer overdue intelligence portal</p>
+      </div>
+      
+      <div class="search-bar-container">
+        <div class="search-input-wrapper">
+          <i class="material-icons-round">search</i>
+          <input type="text" id="searchInp" class="search-input" placeholder="Search customer name or CIF...">
+          <div id="clearSearchBtn" class="search-clear-btn hidden" onclick="clearSearchInput()">
+            <i class="material-icons-round" style="font-size:18px; left:auto;">close</i>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Recent Searches -->
+      <div class="recent-chips-container" id="recentSearchesBox">
+        <span class="recent-label">Recents:</span>
+        <div id="recentChipsList" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+      </div>
+      
+      <div class="content">
+        <div class="results-grid" id="results"></div>
+      </div>
+    </div>
+
+    <!-- 2. DETAIL VIEW -->
+    <div id="view-detail" class="view hidden">
+      <div class="content" style="padding-top:24px;">
+        <!-- Customer avatar card -->
+        <div class="customer-header">
+          <div class="detail-hero-layout">
+            <div class="detail-hero-left">
+              <div class="detail-avatar" id="det-avatar">CS</div>
+              <div class="detail-name-sec">
+                <h2 id="det-name" class="detail-name">Loading Customer Name...</h2>
+                <div class="detail-meta-row">
+                  <div id="det-id" class="detail-cif">🆔 CIF: N/A</div>
+                  <div id="det-group-tag" class="detail-group-pill" onclick="navTo('group')">Group: None</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="detail-hero-actions">
+              <div id="det-status" class="detail-status-row"></div>
+              <div class="btn-circle" onclick="openShareModal()" title="Share Account Details"><i class="material-icons-round">share</i></div>
+              <div class="btn-circle" onclick="openReminderPopup()" title="Send Reminder"><i class="material-icons-round">notifications</i></div>
+              <div class="btn-circle" onclick="openGPS()" title="GPS Coordination"><i class="material-icons-round">place</i></div>
+              <div class="btn-circle" onclick="openCommitmentModal()" title="Schedule Upcoming Commitment"><i class="material-icons-round">calendar_month</i></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Metrics Grid (NPA red, WL yellow) -->
+        <div class="stat-grid" id="detail-metrics-grid">
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">account_balance_wallet</i><span class="stat-card-lbl">Net Overdue</span></div><div class="stat-card-val neg-val" id="v-net-ovd"><div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div></div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">request_quote</i><span class="stat-card-lbl">Total Overdue</span></div><div class="stat-card-val" id="v-tot-ovd"><div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div></div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">security</i><span class="stat-card-lbl">NPA Saver</span></div><div class="stat-card-val" id="v-npa"><div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div></div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">health_and_safety</i><span class="stat-card-lbl">WL Saver</span></div><div class="stat-card-val" id="v-wl"><div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div></div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">event_busy</i><span class="stat-card-lbl">OVD Days</span></div><div class="stat-card-val" id="v-days"><div class="skeleton skeleton-text" style="width: 60px; height: 26px; margin: 4px 0;"></div></div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">account_balance</i><span class="stat-card-lbl">Total Loan</span></div><div class="stat-card-val" id="v-loan"><div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div></div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">savings</i><span class="stat-card-lbl">Op. Balance</span></div><div class="stat-card-val" id="v-op"><div class="skeleton skeleton-text" style="width: 120px; height: 26px; margin: 4px 0;"></div></div></div>
+          <div class="premium-stat-card"><div class="stat-card-header"><i class="material-icons-round">autorenew</i><span class="stat-card-lbl">Renewal</span></div><div class="stat-card-val" id="v-renewal"><div class="skeleton skeleton-text" style="width: 100px; height: 26px; margin: 4px 0;"></div></div></div>
+        </div>
+        
+        <!-- Timeline section removed -->
+
+        <!-- Contacts Grid -->
+        <div class="table-section-title"><span><i class="material-icons-round" style="vertical-align:middle; margin-right:6px; color:var(--accent-gold);">contacts</i> Contact Credentials</span></div>
+        <div class="contact-grid-wrap" id="contact-grid"></div>
+        
+        <!-- Loan Details -->
+        <div class="table-section-title"><span><i class="material-icons-round" style="vertical-align:middle; margin-right:6px; color:var(--accent-gold);">receipt_long</i> Active Loan Portfolios</span></div>
+        <div class="table-container-wrap">
+          <table id="tbl-loan">
+            <thead>
+              <tr>
+                <th onclick="sortPortfolio('SCHEME')">Scheme & Account <span class="sort-icon" id="sort-SCHEME">↕</span></th>
+                <th onclick="sortPortfolio('OUTSTANDING_LOAN')">Outstanding <span class="sort-icon" id="sort-OUTSTANDING_LOAN">↕</span></th>
+                <th onclick="sortPortfolio('FULL_RATE')">Rate <span class="sort-icon" id="sort-FULL_RATE">↕</span></th>
+                <th onclick="sortPortfolio('MIN_BAL_NPA')">NPA Saver <span class="sort-icon" id="sort-MIN_BAL_NPA">↕</span></th>
+                <th onclick="sortPortfolio('MIN_BAL_WL')">WL Saver <span class="sort-icon" id="sort-MIN_BAL_WL">↕</span></th>
+                <th onclick="sortPortfolio('NET_OVD')">Net OVD <span class="sort-icon" id="sort-NET_OVD">↕</span></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. GROUP VIEW -->
+    <div id="view-group" class="view hidden">
+      <div class="content" style="padding-top:24px;" id="group-content"></div>
+    </div>
+
+    <!-- 4. INSIGHTS VIEW -->
+    <div id="view-insights" class="view hidden">
+      <div class="content">
+        <div class="tab-slider-container">
+          <div id="tab-daily" class="tab-slider-btn active" onclick="switchTab('daily')">Monthly Breakdown</div>
+          <div id="tab-nepali" class="tab-slider-btn" onclick="switchTab('nepali')">Nepali Month Filter</div>
+        </div>
+        
+        <!-- DailyPane -->
+        <div id="pane-daily">
+          <div class="table-container-wrap">
+            <table id="dailyTable">
+              <thead>
+                <tr>
+                  <th>English Month</th>
+                  <th>Total Overdue</th>
+                  <th>Interest</th>
+                  <th>Principal</th>
+                  <th>Penal Int</th>
+                </tr>
+              </thead>
+              <tbody id="body-daily"></tbody>
+              <tfoot id="foot-daily"></tfoot>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Nepali Filter Pane -->
+        <div id="pane-nepali" class="hidden">
+          <div class="filter-card-premium">
+            <div class="filter-grp-label">Select Year Range</div>
+            <div id="year-chips" class="chip-container-wrap"></div>
+            
+            <div class="filter-grp-label">Select Nepali Months</div>
+            <div id="month-chips" class="chip-container-wrap"></div>
+            
+            <button class="btn-premium" onclick="applySlicer()" style="width:100%;">
+              <i class="material-icons-round">filter_alt</i> Apply Filters
+            </button>
+          </div>
+          
+          <div class="table-container-wrap">
+            <table id="nepaliTable">
+              <thead>
+                <tr>
+                  <th>Nepali Month</th>
+                  <th>Total Overdue</th>
+                  <th>Interest</th>
+                  <th>Principal</th>
+                  <th>Penal Int</th>
+                </tr>
+              </thead>
+              <tbody id="body-nepali"></tbody>
+              <tfoot id="foot-nepali"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <div class="nav-indicator-bar" id="bottom-indicator"></div>
+    <div class="nav-item active" id="n-search" onclick="navTo('search')"><i class="material-icons-round">search</i><span>Search</span></div>
+    <div class="nav-item" id="n-detail" onclick="navTo('detail')"><i class="material-icons-round">person</i><span>Summary</span></div>
+    <div class="nav-item" id="n-group" onclick="navTo('group')"><i class="material-icons-round">groups</i><span>Group</span></div>
+    <div class="nav-item" id="n-insights" onclick="navTo('insights')"><i class="material-icons-round">insights</i><span>Insights</span></div>
+  </nav>
+</div>
+
+<!-- Dynamic sliding Toasts container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- Modal Backdrops -->
+<!-- Share Account Modal (NO CURRENCY SIGN) -->
+<div id="shareModal" class="modal-backdrop hidden" onclick="closeModalOnBackdrop(event, 'shareModal')">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 class="modal-title">📤 Share Account Details</h3>
+      <i class="material-icons-round modal-close-icon" onclick="closeShareModal()">close</i>
+    </div>
+    <div class="modal-body">
+      <label>Message Preview</label>
+      <textarea id="sharePreview" readonly></textarea>
+      <div class="modal-actions">
+        <button class="btn-premium" onclick="copyAccountInfoFromModal()"><i class="material-icons-round">content_copy</i> Copy</button>
+        <button class="btn-premium" onclick="shareViaWhatsAppFromModal()"><i class="material-icons-round">chat</i> WhatsApp</button>
+        <button class="btn-premium" onclick="shareViaSMSFromModal()"><i class="material-icons-round">sms</i> SMS</button>
+      </div>
+      <div class="modal-actions" style="margin-top:8px;">
+        <button class="btn-premium btn-outline" onclick="closeShareModal()" style="flex:0.5;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reminder Modal -->
+<div id="reminderModal" class="modal-backdrop hidden" onclick="closeModalOnBackdrop(event, 'reminderModal')">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 class="modal-title">📨 Send Reminder Notification</h3>
+      <i class="material-icons-round modal-close-icon" onclick="closeReminder()">close</i>
+    </div>
+    <div class="modal-body">
+      <label>Select Language</label>
+      <div class="segmented-control">
+        <div class="segmented-btn active" id="btn-lang-en" onclick="setReminderLang('EN')">English</div>
+        <div class="segmented-btn" id="btn-lang-np" onclick="setReminderLang('NP')">Nepali</div>
+      </div>
+      <input type="hidden" id="remLang" value="EN">
+
+      <label>Select Target Contact</label>
+      <div class="segmented-control">
+        <div class="segmented-btn active" id="btn-cont-pri" onclick="setReminderContact('primary')">Primary</div>
+        <div class="segmented-btn" id="btn-cont-sec" onclick="setReminderContact('secondary')">Secondary</div>
+      </div>
+      <input type="hidden" id="remContact" value="primary">
+
+      <label>Message Preview</label>
+      <textarea id="remPreview" readonly></textarea>
+      
+      <div class="modal-actions">
+        <button class="btn-premium" onclick="copyReminder()"><i class="material-icons-round">content_copy</i> Copy</button>
+        <button class="btn-premium" onclick="sendWhatsApp()"><i class="material-icons-round">chat</i> WhatsApp</button>
+        <button class="btn-premium" onclick="sendSMS()"><i class="material-icons-round">sms</i> SMS</button>
+      </div>
+      <div class="modal-actions" style="margin-top:8px;">
+        <button class="btn-premium btn-outline" onclick="closeReminder()" style="flex:0.5;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GPS Coordinator Modal -->
+<div id="gpsModal" class="modal-backdrop hidden" onclick="closeModalOnBackdrop(event, 'gpsModal')">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 class="modal-title">🌐 Field GPS Coordination</h3>
+      <i class="material-icons-round modal-close-icon" onclick="closeGpsModal()">close</i>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex; justify-content:space-between; margin-bottom:14px; gap:8px;">
+        <button class="btn-premium btn-outline" id="toggleManualEntry" style="padding:8px 12px; font-size:12px;" onclick="toggleManualEntry()">
+          <i class="material-icons-round">search</i> Manual GPS search
+        </button>
+      </div>
+      
+      <div id="gpsManualSearch" class="hidden" style="margin-bottom:14px;">
+        <input type="text" id="gpsManualSearchInp" placeholder="Search customer or CIF..." oninput="searchGpsCustomer()">
+        <div id="gpsManualResults" style="margin-top:6px; max-height:130px; overflow-y:auto; background:rgba(0,0,0,0.02); border-radius:8px;"></div>
+      </div>
+      
+      <div id="gpsCurrentCustomerInfo" style="background:rgba(26,59,92,0.05); padding:12px; border-radius:var(--radius-md); margin-bottom:16px;">
+        <div id="gpsCustName" style="font-weight:700; font-size:15px; color:var(--primary);">Active Customer</div>
+        <div id="gpsCustId" style="font-size:12px; color:var(--theme-text-muted); margin-top:2px;">CIF: -</div>
+      </div>
+      
+      <input type="file" id="gpsCameraInput" accept="image/*" capture="environment" style="display:none" onchange="onGpsImageCapture(event)">
+
+      <label>Saved Location Coords</label>
+      <div id="gpsChips" class="chip-container-wrap" style="margin-bottom:6px;"></div>
+
+      <label style="margin-top:4px;">Saved Images</label>
+      <div id="gpsImageGallery" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(80px, 1fr)); gap:8px; margin-bottom:16px;">
+        <div style="grid-column:1/-1; text-align:center; padding:6px; color:var(--theme-text-muted); font-size:13px;">No images captured</div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <button class="btn-premium" onclick="showGpsAddForm()"><i class="material-icons-round">add_location</i> + Add Coords</button>
+        <button class="btn-premium btn-outline" onclick="showGpsUpdateMode()"><i class="material-icons-round">edit</i> Manage List</button>
+      </div>
+      
+      <div id="gpsForm" class="hidden" style="padding:14px; border:1px solid var(--theme-border); border-radius:var(--radius-md); margin-bottom:16px;">
+        <label>Location Type</label>
+        <select id="gpsLocType" onchange="gpsTypeChanged()">
+          <option value="Residence">🏠 Residence Location</option>
+          <option value="Business">🏢 Business Headquarters</option>
+          <option value="Collateral">🗺️ Collateral Asset</option>
+        </select>
+        
+        <div id="gpsLabelGroup" class="hidden">
+          <label>Custom label identifier</label>
+          <input type="text" id="gpsLabel" placeholder="e.g., Office, Warehouse 2">
+        </div>
+        
+        <label>Coordinates display</label>
+        <div id="gpsCoordsDisplay" class="gps-display-premium">Awaiting Field Capture...</div>
+        
+        <button class="btn-premium" style="margin-top:8px; width:100%;" onclick="captureGpsLocation()">
+          <i class="material-icons-round">my_location</i> Capture My Current Location
+        </button>
+
+        <button class="btn-premium btn-outline" style="margin-top:8px; width:100%;" onclick="triggerGpsCamera()">
+          <i class="material-icons-round">camera_alt</i> Capture Photo (WEBP)
+        </button>
+
+        <div id="gpsImagePreview" class="hidden" style="margin-top:10px; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--theme-border); position:relative;">
+          <img id="gpsPreviewImg" style="width:100%; display:block; max-height:180px; object-fit:contain; background:#000;">
+          <span style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;"
+                onclick="clearGpsImagePreview()">&times;</span>
+        </div>
+        
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="btn-premium" onclick="submitGpsForm()"><i class="material-icons-round">save</i> Save Record</button>
+          <button class="btn-premium btn-outline" onclick="cancelGpsForm()">Cancel</button>
+        </div>
+      </div>
+      
+      <div id="gpsUpdateList" class="hidden" style="margin-bottom:16px;">
+        <div id="gpsUpdateItems"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-premium btn-outline" onclick="closeGpsModal()" style="flex:0.5;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Upcoming commitment scheduler Modal -->
+<div id="commitmentModal" class="modal-backdrop hidden" onclick="closeModalOnBackdrop(event, 'commitmentModal')">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 class="modal-title">📅 Schedule Upcoming Payment</h3>
+      <i class="material-icons-round modal-close-icon" onclick="closeCommitmentModal()">close</i>
+    </div>
+    <div class="modal-body">
+      <label>Commitment Date</label>
+      <input type="date" id="comDate">
+      
+      <label>Follow-up Remarks</label>
+      <textarea id="comRemarks" placeholder="Enter follow up details, promised payment amount, commitment discussions..."></textarea>
+      
+      <div class="modal-actions">
+        <button class="btn-premium" onclick="saveCommitment()"><i class="material-icons-round">save</i> Save Commitment</button>
+        <button class="btn-premium btn-outline" onclick="closeCommitmentModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
