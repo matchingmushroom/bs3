@@ -1508,12 +1508,23 @@
     }
     
     // Initialize Firebase from cached config for Firestore access
-    const cachedConfig = localStorage.getItem('crm_fb_config');
-    if (cachedConfig && typeof firebase !== 'undefined') {
+    var fbConfig = (function() {
+      var cached = localStorage.getItem('crm_fb_config');
+      if (cached) { try { return JSON.parse(cached); } catch(e) {} }
+      return null;
+    })();
+    if (!fbConfig && typeof callBackend !== 'undefined') {
       try {
-        const config = JSON.parse(cachedConfig);
-        if (firebase.apps.length === 0 && config.apiKey) {
-          firebase.initializeApp(config);
+        fbConfig = await callBackend('getFirebaseConfig');
+        if (fbConfig && fbConfig.apiKey) {
+          localStorage.setItem('crm_fb_config', JSON.stringify(fbConfig));
+        }
+      } catch(e) { console.warn('GAS config fetch failed:', e); }
+    }
+    if (fbConfig && fbConfig.apiKey && typeof firebase !== 'undefined') {
+      try {
+        if (firebase.apps.length === 0) {
+          firebase.initializeApp(fbConfig);
         }
         if (firebase.apps.length > 0) {
           window.db = firebase.firestore();

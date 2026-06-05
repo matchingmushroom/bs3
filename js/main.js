@@ -44,14 +44,11 @@ async function loadCustomersFromGAS() {
 async function loadInitialCachedLedgers() {
   const loaded = await loadCustomersFromFirestore();
   if (loaded && customers.length > 0) {
-    showToast(`Loaded ${customers.length} records.`, 'success');
     triggerFuzzySearch('');
     return;
   }
-  const cachedList = await crmDb.getAll('customers');
-  if (cachedList.length > 0) {
-    customers = cachedList;
-    showToast(`Loaded ${customers.length} cached records offline.`, 'success');
+  const gasLoaded = await loadCustomersFromGAS();
+  if (gasLoaded && customers.length > 0) {
     triggerFuzzySearch('');
   }
 }
@@ -63,12 +60,6 @@ async function syncLedgerDataOnStart() {
     const activeView = document.querySelector('.view:not(.hidden)');
     if (activeView?.id === 'view-detail' && currentCIF) loadDetails();
     else if (activeView?.id === 'view-group') loadGroupDetails();
-    return;
-  }
-  const cachedList = await crmDb.getAll('customers');
-  if (cachedList.length > 0) {
-    customers = cachedList;
-    triggerFuzzySearch(document.getElementById('searchInp')?.value || '');
     return;
   }
   const gasLoaded = await loadCustomersFromGAS();
