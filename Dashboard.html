@@ -2011,6 +2011,14 @@
             console.warn('GAS commitments fallback failed:', gasErr);
           }
         }
+
+        // Diagnostic: if still empty, log total count
+        if (calendarCommitments.length === 0) {
+          try {
+            const countSnap = await window.db.collection('commitments').get();
+            console.log('Total commitments in Firestore:', countSnap.size);
+          } catch(e) { console.warn('Count check failed:', e); }
+        }
       } else {
         calendarCommitments = [];
         showToast('Firestore unavailable. Please log in via the main app.', 'warning');
@@ -2036,7 +2044,7 @@
     if (!tbody || !cardsContainer) return;
     
     if (calendarCommitments.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="no-commitments" style="text-align:center; padding: 32px; color: var(--theme-text-muted);">No payment commitments scheduled for this date.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="no-commitments" style="text-align:center; padding: 32px; color: var(--theme-text-muted);">No payment commitments scheduled for this date. ${window.userRole === 'admin' ? '<a href="Admin.html" style="color:var(--accent-gold);">Sync from sheet</a>' : ''}</td></tr>`;
       cardsContainer.innerHTML = `<div class="commitment-card-empty">No payment commitments scheduled for this date.</div>`;
       return;
     }
