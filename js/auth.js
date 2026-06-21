@@ -58,7 +58,7 @@ function initFirebaseAndAuth(config, email, pass) {
         
         // Initialize Firestore
         window.db = firebase.firestore();
-        window.db.settings({ persistence: true });
+        window.db.settings({ persistence: false });
         
         // Read user role from Firestore roles collection
         window.db.collection('roles').doc(user.uid).get().then(doc => {
@@ -118,7 +118,7 @@ function checkSessionOnLoad() {
     }
     if (firebase.apps.length > 0) {
       window.db = firebase.firestore();
-      window.db.settings({ persistence: true });
+      window.db.settings({ persistence: false });
     }
     window.userRole = localStorage.getItem('crm_user_role') || 'viewer';
     applyRoleUI();

@@ -1528,7 +1528,7 @@
         }
         if (firebase.apps.length > 0) {
           window.db = firebase.firestore();
-          try { window.db.settings({ persistence: true }); } catch(e) {}
+          try { window.db.settings({ persistence: false }); } catch(e) {}
         }
       } catch(e) { console.warn('Firebase init error:', e); }
     }
@@ -1582,7 +1582,7 @@
     // Initialize Firestore
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
       window.db = window.db || firebase.firestore();
-      try { window.db.settings({ persistence: true }); } catch(e) {}
+      try { window.db.settings({ persistence: false }); } catch(e) {}
     }
 
     // Fetch data from Firestore

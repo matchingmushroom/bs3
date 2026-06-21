@@ -90,8 +90,8 @@ async function loadMemberDiscStatus(memberName) {
   const el = document.getElementById('disc-' + memberName.replace(/[^a-zA-Z0-9]/g, '_'));
   if (!el) return;
   
-  const map = await crmDb.getKV('name_to_cif') || {};
-  const cifId = map[memberName];
+  const found = customers.find(c => c.name === memberName);
+  const cifId = found ? found.id : null;
   if (!cifId) return;
   
   const cust = customers.find(c => c.id === cifId);
@@ -114,8 +114,8 @@ async function loadMemberDiscStatus(memberName) {
 }
 
 async function navigateToMember(memberName) {
-  const map = await crmDb.getKV('name_to_cif') || {};
-  const cifId = map[memberName];
+  const found = customers.find(c => c.name === memberName);
+  const cifId = found ? found.id : null;
   
   if (cifId) {
     currentCIF = cifId;

@@ -363,7 +363,7 @@ async function searchGpsCustomer() {
     } catch(e) {}
   }
   if (list.length === 0) {
-    list = await crmDb.getAll('customers');
+    list = customers.map(c => ({ id: c.id, name: c.name }));
   }
   
   const filtered = list.filter(c => c.name.toUpperCase().includes(q) || c.id.includes(q)).slice(0, 5);
